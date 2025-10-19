@@ -1,7 +1,4 @@
-"""配置管理模块
-
-提供类型安全的配置管理，支持 YAML 文件加载、环境变量读取和配置验证。
-"""
+"""配置管理"""
 
 from pydantic import BaseModel, Field, field_validator
 from typing import List
@@ -26,11 +23,7 @@ class AIModelConfig(BaseModel):
     @field_validator('api_key')
     @classmethod
     def validate_api_key(cls, v: str) -> str:
-        """验证 API Key
-        
-        注意：默认值 'your_api_key_here' 在创建默认配置时是允许的，
-        但在实际使用时需要替换为真实的 API Key
-        """
+        """验证 API Key"""
         if not v:
             raise ValueError("API Key 不能为空")
         # 允许默认占位符，但会在实际使用时提示用户配置
@@ -191,18 +184,7 @@ class AppConfig(BaseModel):
     
     @classmethod
     def load_from_file(cls, config_path: str = "config.yaml") -> "AppConfig":
-        """从 YAML 文件加载配置
-        
-        Args:
-            config_path: 配置文件路径
-            
-        Returns:
-            AppConfig 实例
-            
-        Raises:
-            FileNotFoundError: 配置文件不存在
-            ValueError: 配置验证失败
-        """
+        """从 YAML 文件加载配置"""
         config_file = Path(config_path)
         if config_file.exists():
             with open(config_file, 'r', encoding='utf-8') as f:
@@ -219,11 +201,7 @@ class AppConfig(BaseModel):
             return default_config
     
     def save_to_file(self, config_path: str = "config.yaml") -> None:
-        """保存配置到文件
-        
-        Args:
-            config_path: 配置文件路径
-        """
+        """保存配置到文件"""
         config_file = Path(config_path)
         config_file.parent.mkdir(parents=True, exist_ok=True)
         
@@ -238,11 +216,7 @@ class AppConfig(BaseModel):
     
     @classmethod
     def create_default(cls) -> "AppConfig":
-        """创建默认配置
-        
-        Returns:
-            默认的 AppConfig 实例
-        """
+        """创建默认配置"""
         return cls(
             ai_model=AIModelConfig(api_key="your_api_key_here"),
             ocr=OCRConfig(),
@@ -252,16 +226,7 @@ class AppConfig(BaseModel):
     
     @staticmethod
     def _resolve_env_variables(config_data: dict) -> dict:
-        """递归解析配置中的环境变量
-        
-        支持 ${VAR_NAME} 格式的环境变量引用
-        
-        Args:
-            config_data: 配置字典
-            
-        Returns:
-            解析后的配置字典
-        """
+        """递归解析配置中的环境变量"""
         if isinstance(config_data, dict):
             return {
                 key: AppConfig._resolve_env_variables(value)

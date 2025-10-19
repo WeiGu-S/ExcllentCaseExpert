@@ -330,6 +330,7 @@ class MainWindow(QMainWindow):
         
         # 连接信号
         self.ocr_worker.progress.connect(self._on_ocr_progress)
+        self.ocr_worker.status.connect(self._on_ocr_status)
         self.ocr_worker.finished.connect(self._on_ocr_finished)
         self.ocr_worker.error.connect(self._on_ocr_error)
         
@@ -347,6 +348,10 @@ class MainWindow(QMainWindow):
     def _on_ocr_progress(self, value: int):
         """OCR 进度更新"""
         self.progress_bar.setValue(value)
+    
+    def _on_ocr_status(self, status: str):
+        """OCR 状态更新"""
+        self.status_label.setText(status)
     
     def _on_ocr_finished(self, text: str):
         """OCR 完成"""
@@ -411,6 +416,7 @@ class MainWindow(QMainWindow):
         
         # 连接信号
         self.ai_worker.progress.connect(self._on_ai_progress)
+        self.ai_worker.status.connect(self._on_ai_status)
         self.ai_worker.finished.connect(self._on_ai_finished)
         self.ai_worker.error.connect(self._on_ai_error)
         
@@ -428,6 +434,10 @@ class MainWindow(QMainWindow):
     def _on_ai_progress(self, value: int):
         """AI 分析进度更新"""
         self.progress_bar.setValue(value)
+    
+    def _on_ai_status(self, status: str):
+        """AI 分析状态更新"""
+        self.status_label.setText(status)
     
     def _on_ai_finished(self, test_points: Dict):
         """AI 分析完成"""
@@ -495,6 +505,7 @@ class MainWindow(QMainWindow):
         
         # 连接信号
         self.case_worker.progress.connect(self._on_case_progress)
+        self.case_worker.status.connect(self._on_case_status)
         self.case_worker.finished.connect(self._on_case_finished)
         self.case_worker.error.connect(self._on_case_error)
         
@@ -512,6 +523,10 @@ class MainWindow(QMainWindow):
     def _on_case_progress(self, value: int):
         """测试用例生成进度更新"""
         self.progress_bar.setValue(value)
+    
+    def _on_case_status(self, status: str):
+        """测试用例生成状态更新"""
+        self.status_label.setText(status)
     
     def _on_case_finished(self, test_cases: List[Dict]):
         """测试用例生成完成"""

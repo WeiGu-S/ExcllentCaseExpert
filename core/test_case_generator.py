@@ -20,10 +20,7 @@ class CaseType(Enum):
 
 
 class TestCaseGenerator:
-    """测试用例生成器
-    
-    根据测试要点生成详细的测试用例，包括正向、负向、边界和异常用例。
-    """
+    """测试用例生成器"""
     
     def __init__(self):
         """初始化测试用例生成器"""
@@ -56,18 +53,7 @@ class TestCaseGenerator:
         ]
     
     def generate_test_cases(self, test_points: Dict) -> List[Dict]:
-        """生成测试用例
-        
-        Args:
-            test_points: 测试要点字典，格式：
-                {
-                    "feature_name": "功能名称",
-                    "test_points": [TestPoint对象列表]
-                }
-        
-        Returns:
-            测试用例字典列表
-        """
+        """生成测试用例"""
         self.logger.log_operation("generate_test_cases_start", 
                                   feature_name=test_points.get("feature_name", ""))
         
@@ -110,14 +96,7 @@ class TestCaseGenerator:
         return result
     
     def _generate_positive_cases(self, test_point: TestPoint) -> List[TestCase]:
-        """生成正向测试用例
-        
-        Args:
-            test_point: 测试要点对象
-        
-        Returns:
-            正向测试用例列表
-        """
+        """生成正向测试用例"""
         cases = []
         
         # 为每个场景生成一个正向用例
@@ -155,14 +134,7 @@ class TestCaseGenerator:
         return cases
     
     def _generate_negative_cases(self, test_point: TestPoint) -> List[TestCase]:
-        """生成负向测试用例
-        
-        Args:
-            test_point: 测试要点对象
-        
-        Returns:
-            负向测试用例列表
-        """
+        """生成负向测试用例"""
         cases = []
         
         # 检查是否包含负向测试关键词
@@ -193,14 +165,7 @@ class TestCaseGenerator:
         return cases
     
     def _generate_boundary_cases(self, test_point: TestPoint) -> List[TestCase]:
-        """生成边界测试用例
-        
-        Args:
-            test_point: 测试要点对象
-        
-        Returns:
-            边界测试用例列表
-        """
+        """生成边界测试用例"""
         cases = []
         
         # 检查是否包含边界测试关键词
@@ -235,14 +200,7 @@ class TestCaseGenerator:
         return cases
     
     def _generate_exception_cases(self, test_point: TestPoint) -> List[TestCase]:
-        """生成异常测试用例
-        
-        Args:
-            test_point: 测试要点对象
-        
-        Returns:
-            异常测试用例列表
-        """
+        """生成异常测试用例"""
         cases = []
         
         # 为高优先级测试要点生成异常用例
@@ -269,15 +227,7 @@ class TestCaseGenerator:
     
     def _generate_positive_steps(self, test_point: TestPoint, 
                                  scenario: str) -> List[TestStep]:
-        """生成正向测试步骤
-        
-        Args:
-            test_point: 测试要点对象
-            scenario: 测试场景
-        
-        Returns:
-            测试步骤列表
-        """
+        """生成正向测试步骤"""
         steps = []
         
         # 步骤1: 准备
@@ -305,15 +255,7 @@ class TestCaseGenerator:
     
     def _generate_negative_steps(self, test_point: TestPoint, 
                                  scenario: str) -> List[TestStep]:
-        """生成负向测试步骤
-        
-        Args:
-            test_point: 测试要点对象
-            scenario: 测试场景
-        
-        Returns:
-            测试步骤列表
-        """
+        """生成负向测试步骤"""
         steps = []
         
         # 步骤1: 准备异常数据
@@ -341,15 +283,7 @@ class TestCaseGenerator:
     
     def _generate_boundary_steps(self, test_point: TestPoint, 
                                  scenario: str) -> List[TestStep]:
-        """生成边界测试步骤
-        
-        Args:
-            test_point: 测试要点对象
-            scenario: 测试场景
-        
-        Returns:
-            测试步骤列表
-        """
+        """生成边界测试步骤"""
         steps = []
         
         # 步骤1: 准备边界数据
@@ -377,15 +311,7 @@ class TestCaseGenerator:
     
     def _generate_exception_steps(self, test_point: TestPoint, 
                                   scenario: str) -> List[TestStep]:
-        """生成异常测试步骤
-        
-        Args:
-            test_point: 测试要点对象
-            scenario: 测试场景
-        
-        Returns:
-            测试步骤列表
-        """
+        """生成异常测试步骤"""
         steps = []
         
         # 步骤1: 模拟异常
@@ -413,15 +339,7 @@ class TestCaseGenerator:
     
     def _create_base_case(self, test_point: TestPoint, 
                          case_type: CaseType) -> TestCase:
-        """创建基础测试用例结构
-        
-        Args:
-            test_point: 测试要点对象
-            case_type: 用例类型
-        
-        Returns:
-            基础测试用例对象
-        """
+        """创建基础测试用例结构"""
         self.case_counter += 1
         
         # 生成用例ID
@@ -444,14 +362,7 @@ class TestCaseGenerator:
         return case
     
     def _get_category_abbreviation(self, category: TestCategory) -> str:
-        """获取测试类别缩写
-        
-        Args:
-            category: 测试类别
-        
-        Returns:
-            类别缩写
-        """
+        """获取测试类别缩写"""
         abbreviations = {
             TestCategory.FUNCTIONAL: "功能",
             TestCategory.PERFORMANCE: "性能",
@@ -462,16 +373,7 @@ class TestCaseGenerator:
         return abbreviations.get(category, "其他")
     
     def _assess_automation_feasibility(self, case: TestCase) -> bool:
-        """评估自动化可行性
-        
-        基于关键词匹配和场景复杂度评估测试用例的自动化可行性。
-        
-        Args:
-            case: 测试用例对象
-        
-        Returns:
-            是否适合自动化
-        """
+        """评估自动化可行性 """
         # 检查标题和描述中的关键词
         text = f"{case.title} {case.description}".lower()
         
@@ -510,14 +412,7 @@ class TestCaseGenerator:
         return False
     
     def _validate_and_deduplicate(self, cases: List[TestCase]) -> List[TestCase]:
-        """验证和去重测试用例
-        
-        Args:
-            cases: 测试用例列表
-        
-        Returns:
-            验证和去重后的测试用例列表
-        """
+        """验证和去重测试用例"""
         validated_cases = []
         seen_signatures = set()
         
@@ -556,14 +451,7 @@ class TestCaseGenerator:
         return validated_cases
     
     def _generate_case_signature(self, case: TestCase) -> str:
-        """生成用例签名用于去重
-        
-        Args:
-            case: 测试用例对象
-        
-        Returns:
-            用例签名字符串
-        """
+        """生成用例签名用于去重 """
         # 使用标题和步骤生成签名
         title_normalized = re.sub(r'\s+', '', case.title.lower())
         steps_text = ''.join([f"{s.action}{s.expected}" for s in case.steps])

@@ -1,7 +1,5 @@
 """
-AI 测试要点分析器
-
-从需求文本中提取测试要点，使用大语言模型进行智能分析。
+AI 测试要点分析模块，从需求文本中提取测试要点，使用大语言模型进行智能分析。
 """
 
 import json
@@ -17,19 +15,11 @@ from utils.log_manager import get_logger
 
 
 class AITestPointAnalyzer:
-    """AI 测试要点分析器
-    
-    使用大语言模型从需求文档中提取测试要点，支持缓存和错误处理。
-    """
+    """AI 测试要点分析器"""
     
     def __init__(self, model_provider: AIModelProvider, 
                  cache_manager: Optional[CacheManager] = None):
-        """初始化分析器
-        
-        Args:
-            model_provider: AI 模型提供商
-            cache_manager: 缓存管理器（可选）
-        """
+        """初始化分析器"""
         self.model_provider = model_provider
         self.cache_manager = cache_manager or CacheManager()
         self.logger = get_logger()
@@ -175,17 +165,7 @@ class AITestPointAnalyzer:
         return prompt
     
     def _parse_response(self, response: str) -> Dict:
-        """解析 AI 响应
-        
-        Args:
-            response: AI 模型返回的响应文本
-            
-        Returns:
-            解析后的字典
-            
-        Raises:
-            AIAnalysisException: 解析失败
-        """
+        """解析 AI 响应"""
         # 尝试提取 JSON 内容
         json_str = self._extract_json(response)
         
@@ -217,14 +197,7 @@ class AITestPointAnalyzer:
         return result
     
     def _extract_json(self, text: str) -> Optional[str]:
-        """从文本中提取 JSON 内容
-        
-        Args:
-            text: 包含 JSON 的文本
-            
-        Returns:
-            提取的 JSON 字符串，如果未找到返回 None
-        """
+        """从文本中提取 JSON 内容"""
         # 移除可能的 markdown 代码块标记
         text = re.sub(r'```json\s*', '', text)
         text = re.sub(r'```\s*', '', text)
@@ -243,14 +216,7 @@ class AITestPointAnalyzer:
         return None
     
     def _fix_json(self, json_str: str) -> str:
-        """尝试修复常见的 JSON 格式错误
-        
-        Args:
-            json_str: 可能有错误的 JSON 字符串
-            
-        Returns:
-            修复后的 JSON 字符串
-        """
+        """尝试修复常见的 JSON 格式错误 """
         # 移除尾部逗号
         json_str = re.sub(r',(\s*[}\]])', r'\1', json_str)
         
@@ -261,14 +227,7 @@ class AITestPointAnalyzer:
         return json_str
     
     def _validate_test_points(self, result: Dict) -> bool:
-        """验证测试要点格式
-        
-        Args:
-            result: 解析后的结果字典
-            
-        Returns:
-            是否验证通过
-        """
+        """验证测试要点格式"""
         try:
             # 使用 Pydantic 模型验证
             test_points_result = TestPointsResult(**result)

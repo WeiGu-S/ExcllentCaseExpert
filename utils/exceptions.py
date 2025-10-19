@@ -1,6 +1,4 @@
 """
-自定义异常类模块
-
 定义系统中使用的所有自定义异常类型，提供统一的异常处理机制。
 """
 
@@ -10,18 +8,10 @@ from typing import Callable, Any, Optional
 
 
 class ExcellentCaseExpertException(Exception):
-    """ExcellentCaseExpert 基础异常类
-    
-    所有自定义异常的基类，提供统一的异常处理接口。
-    """
+    """ExcellentCaseExpert 基础异常类"""
     
     def __init__(self, message: str, details: Optional[dict] = None):
-        """初始化异常
-        
-        Args:
-            message: 异常消息
-            details: 异常详细信息字典
-        """
+        """初始化异常"""
         self.message = message
         self.details = details or {}
         super().__init__(self.message)
@@ -34,11 +24,7 @@ class ExcellentCaseExpertException(Exception):
         return self.message
     
     def to_dict(self) -> dict:
-        """将异常转换为字典格式
-        
-        Returns:
-            包含异常信息的字典
-        """
+        """将异常转换为字典格式"""
         return {
             "error_type": self.__class__.__name__,
             "message": self.message,
@@ -47,10 +33,7 @@ class ExcellentCaseExpertException(Exception):
 
 
 class OCRException(ExcellentCaseExpertException):
-    """OCR 识别异常
-    
-    当 OCR 识别过程中发生错误时抛出此异常。
-    """
+    """OCR 识别异常"""
     
     def __init__(self, message: str, file_path: Optional[str] = None, 
                  engine: Optional[str] = None, details: Optional[dict] = None):
@@ -71,21 +54,11 @@ class OCRException(ExcellentCaseExpertException):
 
 
 class AIAnalysisException(ExcellentCaseExpertException):
-    """AI 分析异常
-    
-    当 AI 模型调用或分析过程中发生错误时抛出此异常。
-    """
+    """AI 分析异常"""
     
     def __init__(self, message: str, provider: Optional[str] = None,
                  model_name: Optional[str] = None, details: Optional[dict] = None):
-        """初始化 AI 分析异常
-        
-        Args:
-            message: 异常消息
-            provider: AI 提供商名称
-            model_name: 模型名称
-            details: 其他详细信息
-        """
+        """初始化 AI 分析异常"""
         exception_details = details or {}
         if provider:
             exception_details["provider"] = provider
@@ -95,21 +68,11 @@ class AIAnalysisException(ExcellentCaseExpertException):
 
 
 class ExportException(ExcellentCaseExpertException):
-    """导出异常
-    
-    当测试用例导出过程中发生错误时抛出此异常。
-    """
+    """导出异常"""
     
     def __init__(self, message: str, export_format: Optional[str] = None,
                  output_path: Optional[str] = None, details: Optional[dict] = None):
-        """初始化导出异常
-        
-        Args:
-            message: 异常消息
-            export_format: 导出格式 (json/xmind)
-            output_path: 输出文件路径
-            details: 其他详细信息
-        """
+        """初始化导出异常"""
         exception_details = details or {}
         if export_format:
             exception_details["export_format"] = export_format
@@ -119,21 +82,11 @@ class ExportException(ExcellentCaseExpertException):
 
 
 class ConfigException(ExcellentCaseExpertException):
-    """配置异常
-    
-    当配置加载、验证或保存过程中发生错误时抛出此异常。
-    """
+    """配置异常"""
     
     def __init__(self, message: str, config_key: Optional[str] = None,
                  config_file: Optional[str] = None, details: Optional[dict] = None):
-        """初始化配置异常
-        
-        Args:
-            message: 异常消息
-            config_key: 配置项键名
-            config_file: 配置文件路径
-            details: 其他详细信息
-        """
+        """初始化配置异常"""
         exception_details = details or {}
         if config_key:
             exception_details["config_key"] = config_key
@@ -145,17 +98,6 @@ class ConfigException(ExcellentCaseExpertException):
 def handle_exceptions(logger=None, default_return: Any = None, 
                      reraise: bool = False):
     """统一异常处理装饰器
-    
-    用于捕获和处理函数执行过程中的异常，提供统一的日志记录和错误处理。
-    
-    Args:
-        logger: 日志记录器实例，如果提供则记录异常信息
-        default_return: 发生异常时的默认返回值
-        reraise: 是否重新抛出异常
-    
-    Returns:
-        装饰器函数
-    
     Example:
         @handle_exceptions(logger=my_logger, default_return=None, reraise=False)
         def my_function():

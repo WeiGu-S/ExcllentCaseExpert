@@ -57,6 +57,11 @@ excellentcase = "main:main"
 requires = ["setuptools>=68.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["core*", "ui*", "utils*"]
+exclude = ["tests*", "*.tests*"]
+
 [tool.black]
 line-length = 88
 target-version = ['py39', 'py310', 'py311']

@@ -23,18 +23,7 @@ class ExportManager:
         self.logger = logger
     
     def export_to_json(self, test_cases: List[TestCase], output_path: str) -> bool:
-        """导出为 JSON 格式
-        
-        Args:
-            test_cases: 测试用例列表
-            output_path: 输出文件路径
-            
-        Returns:
-            是否成功
-            
-        Raises:
-            ExportException: 导出失败
-        """
+        """导出为 JSON 格式"""
         try:
             self.logger.log_operation("export_to_json", 
                                      case_count=len(test_cases),
@@ -98,18 +87,7 @@ class ExportManager:
             raise ExportException(f"JSON 导出失败: {str(e)}")
     
     def export_to_xmind(self, test_cases: List[TestCase], output_path: str) -> bool:
-        """导出为 XMind 格式
-        
-        Args:
-            test_cases: 测试用例列表
-            output_path: 输出文件路径
-            
-        Returns:
-            是否成功
-            
-        Raises:
-            ExportException: 导出失败
-        """
+        """导出为 XMind 格式"""
         try:
             from core.xmind_exporter import XMindExporter
             
@@ -148,14 +126,7 @@ class ExportManager:
             raise ExportException(f"XMind 导出失败: {str(e)}")
     
     def _group_by_category(self, test_cases: List[TestCase]) -> Dict[str, List[TestCase]]:
-        """按类别分组用例
-        
-        Args:
-            test_cases: 测试用例列表
-            
-        Returns:
-            分组后的用例字典，键为类别名称
-        """
+        """按类别分组用例"""
         grouped = {}
         for case in test_cases:
             category_name = case.category.value
@@ -166,14 +137,7 @@ class ExportManager:
         return grouped
     
     def _calculate_statistics(self, test_cases: List[TestCase]) -> Dict:
-        """计算统计信息
-        
-        Args:
-            test_cases: 测试用例列表
-            
-        Returns:
-            统计信息字典
-        """
+        """计算统计信息"""
         if not test_cases:
             return {
                 "total_count": 0,

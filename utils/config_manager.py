@@ -24,9 +24,9 @@ class AIModelConfig(BaseModel):
     @classmethod
     def validate_api_key(cls, v: str) -> str:
         """验证 API Key"""
+        # 允许空值或默认占位符，但会在实际使用时提示用户配置
         if not v:
-            raise ValueError("API Key 不能为空")
-        # 允许默认占位符，但会在实际使用时提示用户配置
+            return "your_api_key_here"
         return v
     
     @field_validator('provider')

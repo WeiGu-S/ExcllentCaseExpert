@@ -21,6 +21,9 @@ from core.ai_model_provider import AIModelFactory
 from core.ai_test_point_analyzer import AITestPointAnalyzer
 from core.test_case_generator import TestCaseGenerator
 from core.export_manager import ExportManager
+from ui.widgets.ocr_result_widget import OCRResultWidget
+from ui.widgets.test_point_widget import TestPointWidget
+from ui.widgets.test_case_widget import TestCaseWidget
 
 
 class MainWindow(QMainWindow):
@@ -82,18 +85,18 @@ class MainWindow(QMainWindow):
         splitter = QSplitter(Qt.Orientation.Horizontal)
         
         # OCR 结果区域（左侧）
-        self.ocr_widget = self._create_ocr_widget()
+        self.ocr_widget = OCRResultWidget()
         splitter.addWidget(self.ocr_widget)
         
         # 右侧分割器
         right_splitter = QSplitter(Qt.Orientation.Vertical)
         
         # 测试要点区域（右上）
-        self.test_point_widget = self._create_test_point_widget()
+        self.test_point_widget = TestPointWidget()
         right_splitter.addWidget(self.test_point_widget)
         
         # 测试用例区域（右下）
-        self.test_case_widget = self._create_test_case_widget()
+        self.test_case_widget = TestCaseWidget()
         right_splitter.addWidget(self.test_case_widget)
         
         splitter.addWidget(right_splitter)
@@ -186,82 +189,6 @@ class MainWindow(QMainWindow):
         self.statusbar.addPermanentWidget(self.model_label)
         
         self.logger.debug("状态栏创建完成")
-    
-    def _create_ocr_widget(self) -> QWidget:
-        """创建 OCR 结果展示组件"""
-        from PyQt6.QtWidgets import QTextEdit, QPushButton
-        
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-        
-        # 标题
-        title = QLabel("📄 OCR 识别结果")
-        title.setStyleSheet("font-size: 14px; font-weight: bold; padding: 5px;")
-        layout.addWidget(title)
-        
-        # 文本编辑器
-        self.ocr_text_edit = QTextEdit()
-        self.ocr_text_edit.setPlaceholderText("OCR 识别的文本将显示在这里...")
-        self.ocr_text_edit.setReadOnly(False)
-        layout.addWidget(self.ocr_text_edit)
-        
-        # 操作按钮
-        button_layout = QHBoxLayout()
-        
-        copy_button = QPushButton("📋 复制")
-        copy_button.clicked.connect(self._copy_ocr_text)
-        button_layout.addWidget(copy_button)
-        
-        clear_button = QPushButton("🗑️ 清空")
-        clear_button.clicked.connect(self._clear_ocr_text)
-        button_layout.addWidget(clear_button)
-        
-        layout.addLayout(button_layout)
-        
-        return widget
-    
-    def _create_test_point_widget(self) -> QWidget:
-        """创建测试要点展示组件"""
-        from PyQt6.QtWidgets import QListWidget
-        
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-        
-        # 标题
-        title = QLabel("🎯 测试要点")
-        title.setStyleSheet("font-size: 14px; font-weight: bold; padding: 5px;")
-        layout.addWidget(title)
-        
-        # 列表
-        self.test_point_list = QListWidget()
-        layout.addWidget(self.test_point_list)
-        
-        return widget
-    
-    def _create_test_case_widget(self) -> QWidget:
-        """创建测试用例展示组件"""
-        from PyQt6.QtWidgets import QTableWidget, QHeaderView
-        
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-        
-        # 标题
-        title = QLabel("📋 测试用例")
-        title.setStyleSheet("font-size: 14px; font-weight: bold; padding: 5px;")
-        layout.addWidget(title)
-        
-        # 表格
-        self.test_case_table = QTableWidget()
-        self.test_case_table.setColumnCount(6)
-        self.test_case_table.setHorizontalHeaderLabels([
-            "ID", "标题", "类别", "优先级", "类型", "自动化"
-        ])
-        self.test_case_table.horizontalHeader().setSectionResizeMode(
-            1, QHeaderView.ResizeMode.Stretch
-        )
-        layout.addWidget(self.test_case_table)
-        
-        return widget
     
     def _init_core_components(self):
         """初始化核心组件"""
@@ -362,9 +289,9 @@ class MainWindow(QMainWindow):
         self.ocr_text = ""
         self.test_points = None
         self.test_cases = []
-        self.ocr_text_edit.clear()
-        self.test_point_list.clear()
-        self.test_case_table.setRowCount(0)
+        self.ocr_widget.set_text("")
+        self.test_point_widget.clear()
+        self.test_case_widget.clear()
         
         # 禁用后续按钮
         self.ai_action.setEnabled(False)
@@ -424,7 +351,7 @@ class MainWindow(QMainWindow):
     def _on_ocr_finished(self, text: str):
         """OCR 完成"""
         self.ocr_text = text
-        self.ocr_text_edit.setPlainText(text)
+        self.ocr_widget.set_text(text)
         
         # 更新状态
         self.status_label.setText("OCR 识别完成")
@@ -465,7 +392,7 @@ class MainWindow(QMainWindow):
     def start_ai_analysis(self):
         """启动 AI 分析"""
         # 获取 OCR 文本（可能被用户编辑过）
-        text = self.ocr_text_edit.toPlainText().strip()
+        text = self.ocr_widget.get_text().strip()
         
         if not text:
             QMessageBox.warning(
@@ -507,7 +434,7 @@ class MainWindow(QMainWindow):
         self.test_points = test_points
         
         # 显示测试要点
-        self._display_test_points(test_points)
+        self.test_point_widget.set_test_points(test_points)
         
         # 更新状态
         self.status_label.setText("AI 分析完成")
@@ -591,7 +518,7 @@ class MainWindow(QMainWindow):
         self.test_cases = test_cases
         
         # 显示测试用例
-        self._display_test_cases(test_cases)
+        self.test_case_widget.set_test_cases(test_cases)
         
         # 更新状态
         self.status_label.setText("测试用例生成完成")
@@ -774,118 +701,3 @@ class MainWindow(QMainWindow):
                 "设置已保存",
                 "设置已保存并应用。"
             )
-    
-    def _display_test_points(self, test_points: Dict):
-        """显示测试要点"""
-        from PyQt6.QtWidgets import QListWidgetItem
-        from PyQt6.QtGui import QColor
-        
-        self.test_point_list.clear()
-        
-        feature_name = test_points.get("feature_name", "")
-        points = test_points.get("test_points", [])
-        
-        # 添加功能名称作为标题
-        if feature_name:
-            title_item = QListWidgetItem(f"【{feature_name}】")
-            title_item.setForeground(QColor(0, 0, 255))
-            self.test_point_list.addItem(title_item)
-        
-        # 添加测试要点
-        for point in points:
-            priority = point.get("priority", "P2")
-            description = point.get("description", "")
-            category = point.get("category", "")
-            test_type = point.get("test_type", "")
-            
-            item_text = f"[{priority}] {description} ({category} - {test_type})"
-            item = QListWidgetItem(item_text)
-            
-            # 根据优先级设置颜色
-            if priority == "P0":
-                item.setForeground(QColor(255, 0, 0))  # 红色
-            elif priority == "P1":
-                item.setForeground(QColor(255, 140, 0))  # 橙色
-            elif priority == "P2":
-                item.setForeground(QColor(0, 128, 0))  # 绿色
-            else:
-                item.setForeground(QColor(128, 128, 128))  # 灰色
-            
-            self.test_point_list.addItem(item)
-    
-    def _display_test_cases(self, test_cases: List[Dict]):
-        """显示测试用例"""
-        from PyQt6.QtWidgets import QTableWidgetItem
-        
-        self.test_case_table.setRowCount(len(test_cases))
-        
-        for i, case in enumerate(test_cases):
-            # ID
-            self.test_case_table.setItem(
-                i, 0,
-                QTableWidgetItem(case.get("test_case_id", ""))
-            )
-            
-            # 标题
-            self.test_case_table.setItem(
-                i, 1,
-                QTableWidgetItem(case.get("title", ""))
-            )
-            
-            # 类别
-            category = case.get("category", "")
-            if hasattr(category, 'value'):
-                category = category.value
-            self.test_case_table.setItem(
-                i, 2,
-                QTableWidgetItem(str(category))
-            )
-            
-            # 优先级
-            priority = case.get("priority", "")
-            if hasattr(priority, 'value'):
-                priority = priority.value
-            self.test_case_table.setItem(
-                i, 3,
-                QTableWidgetItem(str(priority))
-            )
-            
-            # 类型
-            self.test_case_table.setItem(
-                i, 4,
-                QTableWidgetItem(case.get("case_type", ""))
-            )
-            
-            # 自动化
-            automation = case.get("automation_feasible", False)
-            automation_text = "✅" if automation else "❌"
-            self.test_case_table.setItem(
-                i, 5,
-                QTableWidgetItem(automation_text)
-            )
-    
-    def _copy_ocr_text(self):
-        """复制 OCR 文本"""
-        from PyQt6.QtWidgets import QApplication
-        
-        text = self.ocr_text_edit.toPlainText()
-        if text:
-            clipboard = QApplication.clipboard()
-            clipboard.setText(text)
-            self.status_label.setText("文本已复制到剪贴板")
-            self.logger.debug("OCR 文本已复制")
-    
-    def _clear_ocr_text(self):
-        """清空 OCR 文本"""
-        reply = QMessageBox.question(
-            self,
-            "确认清空",
-            "确定要清空 OCR 识别结果吗？",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
-        
-        if reply == QMessageBox.StandardButton.Yes:
-            self.ocr_text_edit.clear()
-            self.ocr_text = ""
-            self.status_label.setText("OCR 结果已清空")
-            self.logger.debug("OCR 文本已清空")

@@ -1,0 +1,24 @@
+# 核心依赖
+PyQt6>=6.5.0
+pydantic>=2.0.0
+pyyaml>=6.0.0
+
+# OCR 引擎
+paddleocr>=2.7.0
+pytesseract>=0.3.10
+opencv-python>=4.8.0
+pdf2image>=1.16.0
+
+# AI 模型
+openai>=1.0.0
+requests>=2.31.0
+
+# 导出
+xmind>=1.2.0
+
+# 系统监控
+psutil>=5.9.0
+
+# 图像处理
+Pillow>=10.0.0
+numpy>=1.24.0

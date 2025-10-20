@@ -178,7 +178,11 @@ class TestAITestPointAnalyzer:
                     "description": "测试描述内容详细说明",
                     "test_type": "正向测试",
                     "priority": "P1",
-                    "scenarios": ["场景1详细描述内容", "场景2详细描述内容"]
+                    "scenarios": [
+                        "用户点击登录按钮，验证页面跳转到首页",
+                        "用户输入用户名密码，验证登录成功提示",
+                        "用户在弱网环境下登录，验证加载状态显示"
+                    ]
                 }
             ]
         }

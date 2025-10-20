@@ -310,11 +310,9 @@ class MainWindow(QMainWindow):
                 file_size_mb=file_size_mb
             )
             
-            QMessageBox.information(
-                self,
-                "导入成功",
-                f"文件导入成功：{file_path_obj.name}\n\n请点击 'OCR 识别' 按钮进行文字识别。"
-            )
+            # 自动开始 OCR 识别
+            self.logger.info("导入成功，自动开始 OCR 识别")
+            self.start_ocr()
         except Exception as e:
             self.logger.log_error(e, {"operation": "import_document"})
             QMessageBox.critical(

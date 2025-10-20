@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QSplitter,
     QToolBar, QProgressBar, QLabel, QFileDialog, QMessageBox, QDialog
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QThread
+from PyQt6.QtCore import Qt, pyqtSignal, QThread, QSize
 from PyQt6.QtGui import QAction
 from pathlib import Path
 from typing import Optional, List, Dict
@@ -24,6 +24,7 @@ from core.export_manager import ExportManager
 from ui.widgets.ocr_result_widget import OCRResultWidget
 from ui.widgets.test_point_widget import TestPointWidget
 from ui.widgets.test_case_widget import TestCaseWidget
+from ui.styles import get_theme_stylesheet
 
 
 class MainWindow(QMainWindow):
@@ -71,6 +72,9 @@ class MainWindow(QMainWindow):
             self.config.ui.window_height
         )
         
+        # 应用样式表
+        self.setStyleSheet(get_theme_stylesheet(self.config.ui.theme))
+        
         # 创建工具栏
         self.create_toolbar()
         
@@ -116,11 +120,13 @@ class MainWindow(QMainWindow):
         """创建工具栏"""
         toolbar = QToolBar()
         toolbar.setMovable(False)
+        toolbar.setIconSize(QSize(24, 24))
         self.addToolBar(toolbar)
         
         # 导入按钮
         import_action = QAction("📁 导入文档", self)
         import_action.setStatusTip("导入需求文档（支持 PNG、JPG、PDF）")
+        import_action.setToolTip("导入需求文档\n支持格式：PNG、JPG、PDF")
         import_action.triggered.connect(self.import_document)
         toolbar.addAction(import_action)
         
@@ -129,6 +135,7 @@ class MainWindow(QMainWindow):
         # OCR 按钮
         ocr_action = QAction("🔍 OCR 识别", self)
         ocr_action.setStatusTip("对导入的文档进行 OCR 文字识别")
+        ocr_action.setToolTip("OCR 文字识别\n提取文档中的文字内容")
         ocr_action.triggered.connect(self.start_ocr)
         toolbar.addAction(ocr_action)
         self.ocr_action = ocr_action
@@ -137,6 +144,7 @@ class MainWindow(QMainWindow):
         # AI 分析按钮
         ai_action = QAction("🤖 AI 分析", self)
         ai_action.setStatusTip("使用 AI 分析需求文本，提取测试要点")
+        ai_action.setToolTip("AI 智能分析\n自动提取测试要点")
         ai_action.triggered.connect(self.start_ai_analysis)
         toolbar.addAction(ai_action)
         self.ai_action = ai_action
@@ -145,6 +153,7 @@ class MainWindow(QMainWindow):
         # 生成用例按钮
         generate_action = QAction("📋 生成用例", self)
         generate_action.setStatusTip("根据测试要点生成详细测试用例")
+        generate_action.setToolTip("生成测试用例\n基于测试要点自动生成")
         generate_action.triggered.connect(self.generate_test_cases)
         toolbar.addAction(generate_action)
         self.generate_action = generate_action
@@ -155,6 +164,7 @@ class MainWindow(QMainWindow):
         # 导出按钮
         export_action = QAction("💾 导出", self)
         export_action.setStatusTip("导出测试用例为 JSON 或 XMind 格式")
+        export_action.setToolTip("导出测试用例\n支持 JSON 和 XMind 格式")
         export_action.triggered.connect(self.export_cases)
         toolbar.addAction(export_action)
         self.export_action = export_action
@@ -165,6 +175,7 @@ class MainWindow(QMainWindow):
         # 设置按钮
         settings_action = QAction("⚙️ 设置", self)
         settings_action.setStatusTip("打开设置对话框")
+        settings_action.setToolTip("系统设置\n配置 AI 模型和 OCR 参数")
         settings_action.triggered.connect(self.open_settings)
         toolbar.addAction(settings_action)
         
@@ -389,11 +400,17 @@ class MainWindow(QMainWindow):
             text_length=len(text)
         )
         
-        QMessageBox.information(
-            self,
-            "OCR 完成",
-            f"OCR 识别完成，共识别 {len(text)} 个字符。\n\n请点击 'AI 分析' 按钮提取测试要点。"
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Information)
+        msg.setWindowTitle("✓ OCR 识别完成")
+        msg.setText("<h3>OCR 识别完成</h3>")
+        msg.setInformativeText(
+            f"<p>✓ 成功识别 <b>{len(text)}</b> 个字符</p>"
+            f"<p>📝 文本已显示在左侧区域，您可以编辑修改</p>"
+            f"<p>👉 下一步：点击 <b>'AI 分析'</b> 按钮提取测试要点</p>"
         )
+        msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+        msg.exec()
     
     def _on_ocr_error(self, error_msg: str):
         """OCR 错误"""
@@ -485,11 +502,17 @@ class MainWindow(QMainWindow):
             test_point_count=test_point_count
         )
         
-        QMessageBox.information(
-            self,
-            "AI 分析完成",
-            f"AI 分析完成，共提取 {test_point_count} 个测试要点。\n\n请点击 '生成用例' 按钮生成测试用例。"
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Information)
+        msg.setWindowTitle("✓ AI 分析完成")
+        msg.setText("<h3>AI 分析完成</h3>")
+        msg.setInformativeText(
+            f"<p>✓ 成功提取 <b>{test_point_count}</b> 个测试要点</p>"
+            f"<p>🎯 测试要点已显示在右上方区域</p>"
+            f"<p>👉 下一步：点击 <b>'生成用例'</b> 按钮生成详细测试用例</p>"
         )
+        msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+        msg.exec()
     
     def _on_ai_error(self, error_msg: str):
         """AI 分析错误"""
@@ -580,11 +603,18 @@ class MainWindow(QMainWindow):
             case_count=len(test_cases)
         )
         
-        QMessageBox.information(
-            self,
-            "生成完成",
-            f"测试用例生成完成，共生成 {len(test_cases)} 个测试用例。\n\n请点击 '导出' 按钮导出测试用例。"
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Information)
+        msg.setWindowTitle("✓ 测试用例生成完成")
+        msg.setText("<h3>测试用例生成完成</h3>")
+        msg.setInformativeText(
+            f"<p>✓ 成功生成 <b>{len(test_cases)}</b> 个测试用例</p>"
+            f"<p>📋 测试用例已显示在右下方表格中</p>"
+            f"<p>💡 提示：双击表格行可查看用例详情</p>"
+            f"<p>👉 下一步：点击 <b>'导出'</b> 按钮保存测试用例</p>"
         )
+        msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+        msg.exec()
     
     def _on_case_error(self, error_msg: str):
         """测试用例生成错误"""
@@ -694,12 +724,21 @@ class MainWindow(QMainWindow):
                 )
                 
                 # 询问是否打开文件
-                reply = QMessageBox.question(
-                    self,
-                    "导出成功",
-                    f"测试用例已成功导出到：\n{file_path}\n\n是否打开文件所在位置？",
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+                msg = QMessageBox(self)
+                msg.setIcon(QMessageBox.Icon.Information)
+                msg.setWindowTitle("✓ 导出成功")
+                msg.setText("<h3>测试用例导出成功</h3>")
+                msg.setInformativeText(
+                    f"<p>✓ 文件已保存到：</p>"
+                    f"<p style='color: #2196F3;'><b>{file_path}</b></p>"
+                    f"<p>是否打开文件所在位置？</p>"
                 )
+                msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+                yes_button = msg.button(QMessageBox.StandardButton.Yes)
+                yes_button.setText("打开位置")
+                no_button = msg.button(QMessageBox.StandardButton.No)
+                no_button.setText("稍后查看")
+                reply = msg.exec()
                 
                 if reply == QMessageBox.StandardButton.Yes:
                     import subprocess
@@ -741,6 +780,9 @@ class MainWindow(QMainWindow):
                 
                 # 更新模型标签
                 self.model_label.setText(f"模型: {self.config.ai_model.model_name}")
+                
+                # 重新应用样式表
+                self.setStyleSheet(get_theme_stylesheet(self.config.ui.theme))
                 
                 QMessageBox.information(
                     self,

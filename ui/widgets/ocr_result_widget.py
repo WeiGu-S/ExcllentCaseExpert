@@ -33,11 +33,12 @@ class OCRResultWidget(QWidget):
     def init_ui(self):
         """初始化界面"""
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(5, 5, 5, 5)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(8)
         
         # 标题
         title = QLabel("📄 OCR 识别结果")
-        title.setStyleSheet("font-size: 14px; font-weight: bold; padding: 5px;")
+        title.setProperty("class", "subtitle")
         layout.addWidget(title)
         
         # 文本编辑器
@@ -48,14 +49,18 @@ class OCRResultWidget(QWidget):
         
         # 操作按钮
         button_layout = QHBoxLayout()
+        button_layout.setSpacing(8)
         
         self.copy_button = QPushButton("📋 复制")
         self.copy_button.setToolTip("复制文本到剪贴板")
+        self.copy_button.setMinimumHeight(36)
         self.copy_button.clicked.connect(self.copy_text)
         button_layout.addWidget(self.copy_button)
         
         self.clear_button = QPushButton("🗑️ 清空")
         self.clear_button.setToolTip("清空文本内容")
+        self.clear_button.setMinimumHeight(36)
+        self.clear_button.setProperty("class", "danger")
         self.clear_button.clicked.connect(self.clear_text)
         button_layout.addWidget(self.clear_button)
         
@@ -98,12 +103,10 @@ class OCRResultWidget(QWidget):
         self.logger.info(f"OCR 文本已复制到剪贴板，长度: {len(text)}")
         self.text_copied.emit()
         
-        # 临时显示提示
-        QMessageBox.information(
-            self,
-            "复制成功",
-            f"已复制 {len(text)} 个字符到剪贴板"
-        )
+        # 显示状态栏消息（如果有父窗口）
+        parent_window = self.window()
+        if hasattr(parent_window, 'statusBar'):
+            parent_window.statusBar().showMessage(f"✓ 已复制 {len(text)} 个字符到剪贴板", 3000)
     
     def clear_text(self):
         """清空文本内容"""

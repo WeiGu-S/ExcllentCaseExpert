@@ -25,18 +25,25 @@ class FirstRunWizard:
     def show_welcome_dialog() -> bool:
         """显示欢迎对话框"""
         msg = QMessageBox()
-        msg.setWindowTitle("欢迎使用 ExcellentCaseExpert")
+        msg.setWindowTitle("🎉 欢迎使用 ExcellentCaseExpert")
         msg.setIcon(QMessageBox.Icon.Information)
-        msg.setText("欢迎使用 ExcellentCaseExpert - AI 测试用例生成系统！")
+        msg.setText("<h3>欢迎使用 ExcellentCaseExpert</h3>")
         msg.setInformativeText(
-            "这是您第一次运行本程序。\n\n"
-            "在开始使用之前，需要配置 AI 模型的 API Key。\n\n"
-            "是否现在进行配置？"
+            "<p><b>AI 驱动的测试用例生成系统</b></p>"
+            "<p>这是您第一次运行本程序。</p>"
+            "<p>在开始使用之前，需要配置 AI 模型的 API Key。</p>"
+            "<p>是否现在进行配置？</p>"
         )
         msg.setStandardButtons(
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
         msg.setDefaultButton(QMessageBox.StandardButton.Yes)
+        
+        # 设置按钮文本
+        yes_button = msg.button(QMessageBox.StandardButton.Yes)
+        yes_button.setText("立即配置")
+        no_button = msg.button(QMessageBox.StandardButton.No)
+        no_button.setText("稍后配置")
         
         return msg.exec() == QMessageBox.StandardButton.Yes
     
@@ -44,15 +51,19 @@ class FirstRunWizard:
     def show_config_dialog(config: AppConfig) -> bool:
         """显示配置对话框"""
         dialog = SettingsDialog(config)
-        dialog.setWindowTitle("首次运行配置")
+        dialog.setWindowTitle("🔧 首次运行配置")
         
         # 显示提示信息
         from PyQt6.QtWidgets import QLabel
         info_label = QLabel(
-            "请配置 AI 模型的 API Key 以使用 AI 分析功能。\n"
-            "您可以稍后在设置中修改这些配置。"
+            "<p style='color: #2196F3; font-size: 14px;'>"
+            "📌 <b>首次配置向导</b></p>"
+            "<p>请配置 AI 模型的 API Key 以使用 AI 分析功能。</p>"
+            "<p style='color: #666; font-size: 12px;'>"
+            "💡 提示：您可以稍后在设置中修改这些配置。</p>"
         )
-        info_label.setStyleSheet("color: #666; padding: 10px;")
+        info_label.setWordWrap(True)
+        info_label.setStyleSheet("padding: 15px; background-color: #E3F2FD; border-radius: 6px; margin: 10px;")
         dialog.layout().insertWidget(0, info_label)
         
         return dialog.exec() == SettingsDialog.DialogCode.Accepted

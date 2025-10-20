@@ -35,16 +35,17 @@ class TestPointWidget(QWidget):
     def init_ui(self):
         """初始化界面"""
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(5, 5, 5, 5)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(8)
         
         # 标题
         title = QLabel("🎯 测试要点")
-        title.setStyleSheet("font-size: 14px; font-weight: bold; padding: 5px;")
+        title.setProperty("class", "subtitle")
         layout.addWidget(title)
         
         # 统计标签
         self.stats_label = QLabel("共 0 个测试要点")
-        self.stats_label.setStyleSheet("color: gray; padding: 2px 5px;")
+        self.stats_label.setProperty("class", "info")
         layout.addWidget(self.stats_label)
         
         # 列表

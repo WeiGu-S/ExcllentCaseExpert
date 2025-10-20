@@ -1,0 +1,96 @@
+# ExcellentCaseExpert 配置文件模板
+# 这是一个配置文件模板，首次运行时会自动创建 config.yaml
+
+# ============================================
+# AI 模型配置
+# ============================================
+ai_model:
+  # AI 提供商选择
+  # 可选值: openai, qwen, deepseek, custom
+  provider: "openai"
+  
+  # API 密钥
+  # 支持环境变量: ${OPENAI_API_KEY}
+  # 或直接填写: "sk-your-api-key-here"
+  api_key: "your_api_key_here"
+  
+  # API 基础 URL
+  # OpenAI: https://api.openai.com/v1
+  # Qwen: https://dashscope.aliyuncs.com/compatible-mode/v1
+  # Deepseek: https://api.deepseek.com/v1
+  base_url: "https://api.openai.com/v1"
+  
+  # 模型名称
+  # OpenAI: gpt-4o-mini, gpt-4o, gpt-3.5-turbo
+  # Qwen: qwen-turbo, qwen-plus, qwen-max
+  # Deepseek: deepseek-chat
+  model_name: "gpt-4o-mini"
+  
+  # 最大 token 数
+  # 控制 AI 响应的最大长度
+  max_tokens: 2000
+  
+  # 温度参数 (0.0-1.0)
+  # 较低的值使输出更确定，较高的值使输出更随机
+  temperature: 0.7
+
+# ============================================
+# OCR 配置
+# ============================================
+ocr:
+  # 是否使用 PaddleOCR (推荐用于中文识别)
+  use_paddle_ocr: true
+  
+  # 是否使用 Tesseract (推荐用于英文识别)
+  use_tesseract: true
+  
+  # OCR 识别语言
+  # PaddleOCR: ch_sim (简体中文), en (英文)
+  # Tesseract: chi_sim (简体中文), eng (英文)
+  languages: ["ch_sim", "en"]
+  
+  # 最大文件大小限制 (MB)
+  max_file_size_mb: 50
+
+# ============================================
+# 性能配置
+# ============================================
+performance:
+  # 最大并发任务数
+  # 建议值: 1-5，根据系统性能调整
+  max_concurrent_tasks: 3
+  
+  # 内存清理间隔 (秒)
+  # 定期触发垃圾回收以释放内存
+  memory_cleanup_interval: 30
+  
+  # 最大内存使用限制 (MB)
+  # 超过此值时会触发内存清理
+  max_memory_mb: 1024
+
+# ============================================
+# UI 配置
+# ============================================
+ui:
+  # 主题设置
+  # 可选值: light (浅色), dark (深色), auto (跟随系统)
+  theme: "light"
+  
+  # 界面语言
+  # 可选值: zh_CN (简体中文), en_US (英文)
+  language: "zh_CN"
+  
+  # 窗口宽度 (像素)
+  window_width: 1200
+  
+  # 窗口高度 (像素)
+  window_height: 800
+
+# ============================================
+# 配置说明
+# ============================================
+# 1. 首次使用前，请务必配置 AI 模型的 API Key
+# 2. 可以使用环境变量来保护敏感信息，如: ${OPENAI_API_KEY}
+# 3. 至少需要启用一个 OCR 引擎 (PaddleOCR 或 Tesseract)
+# 4. 性能配置可根据实际系统资源进行调整
+# 5. 修改配置后需要重启应用程序才能生效

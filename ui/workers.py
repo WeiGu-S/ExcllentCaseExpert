@@ -78,18 +78,73 @@ class AIAnalysisWorker(QThread):
             self.logger.info(f"AI 分析工作线程启动，文本长度: {len(self.text)}")
             
             # 阶段 1: 准备分析
-            self.progress.emit(10)
+            self.progress.emit(5)
             self.status.emit("正在准备 AI 分析...")
             
             # 阶段 2: 构建提示词
-            self.progress.emit(20)
+            self.progress.emit(10)
             self.status.emit("正在构建分析提示词...")
             
             # 阶段 3: 调用 AI 模型（主要耗时操作）
-            self.progress.emit(30)
-            self.status.emit("正在调用 AI 模型分析...")
+            # 使用定时器模拟进度更新，让用户知道程序还在运行
+            self.progress.emit(15)
+            self.status.emit("正在连接 AI 服务...")
             
-            result = self.analyzer.extract_test_points(self.text)
+            import time
+            from PyQt6.QtCore import QTimer
+            
+            # 创建一个标志来跟踪 AI 调用是否完成
+            ai_completed = False
+            result = None
+            error = None
+            
+            # 在单独的线程中调用 AI（实际上已经在工作线程中了）
+            def call_ai():
+                nonlocal result, error, ai_completed
+                try:
+                    result = self.analyzer.extract_test_points(self.text)
+                except Exception as e:
+                    error = e
+                finally:
+                    ai_completed = True
+            
+            # 启动 AI 调用
+            import threading
+            ai_thread = threading.Thread(target=call_ai)
+            ai_thread.start()
+            
+            # 模拟进度更新
+            progress_value = 20
+            progress_messages = [
+                "正在发送请求到 AI 模型...",
+                "AI 模型正在分析需求文本...",
+                "正在提取功能测试要点...",
+                "正在提取性能测试要点...",
+                "正在提取安全测试要点...",
+                "正在提取兼容性测试要点...",
+                "正在提取易用性测试要点...",
+                "正在整理分析结果...",
+            ]
+            
+            message_index = 0
+            while not ai_completed:
+                if progress_value < 85:
+                    progress_value += 5
+                    if message_index < len(progress_messages):
+                        self.status.emit(progress_messages[message_index])
+                        message_index += 1
+                    else:
+                        self.status.emit("AI 模型正在深度分析...")
+                    self.progress.emit(progress_value)
+                
+                time.sleep(1)  # 每秒更新一次
+            
+            # 等待 AI 线程完成
+            ai_thread.join()
+            
+            # 检查是否有错误
+            if error:
+                raise error
             
             # 阶段 4: 解析和验证结果
             self.progress.emit(90)

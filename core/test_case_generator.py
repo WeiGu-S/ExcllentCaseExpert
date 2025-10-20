@@ -62,7 +62,17 @@ class TestCaseGenerator:
         
         test_point_list = test_points.get("test_points", [])
         
-        for test_point in test_point_list:
+        for test_point_dict in test_point_list:
+            # 将字典转换为 TestPoint 对象
+            try:
+                if isinstance(test_point_dict, dict):
+                    test_point = TestPoint(**test_point_dict)
+                else:
+                    test_point = test_point_dict
+            except Exception as e:
+                self.logger.error(f"转换测试要点失败: {str(e)}, 数据: {test_point_dict}")
+                continue
+            
             # 根据测试要点生成不同类型的用例
             cases = []
             

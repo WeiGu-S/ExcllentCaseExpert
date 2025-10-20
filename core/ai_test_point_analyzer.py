@@ -74,14 +74,17 @@ class AITestPointAnalyzer:
         
         # 构建 Prompt
         prompt = self._build_prompt(requirement_text)
+        self.logger.info(f"Prompt 构建完成，长度: {len(prompt)} 字符")
         
         # 调用 AI 模型
         try:
+            self.logger.info(f"开始调用{str(self.model_provider)}模型...")
             response = self.model_provider.chat(
                 prompt=prompt,
                 temperature=0.7,
                 max_tokens=2000
             )
+            self.logger.info(f"AI 模型响应成功，长度: {len(response)} 字符")
         except Exception as e:
             self.logger.log_error(e, context={"operation": "AI_CHAT"})
             raise AIAnalysisException(
@@ -91,7 +94,9 @@ class AITestPointAnalyzer:
             )
         
         # 解析响应
+        self.logger.info("开始解析 AI 响应...")
         result = self._parse_response(response)
+        self.logger.info(f"AI 响应解析成功，提取到 {len(result.get('test_points', []))} 个测试要点")
         
         # 验证测试要点
         if not self._validate_test_points(result):

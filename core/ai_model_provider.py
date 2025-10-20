@@ -14,7 +14,7 @@ class AIModelProvider(ABC):
     """AI 模型提供商抽象基类"""
     
     def __init__(self, api_key: str, base_url: str, model_name: str, system_prompt:Optional[str]=None,
-                 max_retries: int = 4, timeout: int = 30):
+                 max_retries: int = 4, timeout: int = 120):
         """初始化模型提供商"""
         self.api_key = api_key
         self.base_url = base_url

@@ -40,17 +40,7 @@ class TestCaseGenerator:
             "下限", "边界", "临界", "极限"
         ]
         
-        # 自动化高可行性关键词
-        self.automation_keywords = [
-            "API", "接口", "数据库", "查询", "计算", "验证",
-            "检查", "比对", "自动", "批量"
-        ]
-        
-        # 自动化低可行性关键词
-        self.manual_keywords = [
-            "人工", "手动", "视觉", "美观", "体验", "感受",
-            "判断", "主观", "交互", "用户界面"
-        ]
+
     
     def generate_test_cases(self, test_points: Dict) -> List[Dict]:
         """生成测试用例"""
@@ -123,8 +113,7 @@ class TestCaseGenerator:
                 # 设置预期结果
                 case.expected_result = f"{scenario}执行成功，系统功能正常"
                 
-                # 评估自动化可行性
-                case.automation_feasible = self._assess_automation_feasibility(case)
+
                 
                 cases.append(case)
         else:
@@ -137,7 +126,6 @@ class TestCaseGenerator:
             case.steps = steps
             
             case.expected_result = "功能执行成功，系统运行正常"
-            case.automation_feasible = self._assess_automation_feasibility(case)
             
             cases.append(case)
         
@@ -168,7 +156,6 @@ class TestCaseGenerator:
                 case.steps = steps
                 
                 case.expected_result = "系统正确处理异常，显示友好的错误提示"
-                case.automation_feasible = self._assess_automation_feasibility(case)
                 
                 cases.append(case)
         
@@ -203,8 +190,6 @@ class TestCaseGenerator:
                 else:
                     case.expected_result = f"系统正确处理{scenario_name}，功能正常"
                 
-                case.automation_feasible = self._assess_automation_feasibility(case)
-                
                 cases.append(case)
         
         return cases
@@ -229,7 +214,6 @@ class TestCaseGenerator:
                 case.steps = steps
                 
                 case.expected_result = "系统优雅降级，保持稳定性，提供友好提示"
-                case.automation_feasible = self._assess_automation_feasibility(case)
                 
                 cases.append(case)
         
@@ -365,7 +349,6 @@ class TestCaseGenerator:
             case_type=case_type.value,
             steps=[],  # 将在具体生成方法中设置
             expected_result="",  # 将在具体生成方法中设置
-            automation_feasible=False,  # 将在具体生成方法中评估
             description=""  # 将在具体生成方法中设置
         )
         
@@ -382,44 +365,7 @@ class TestCaseGenerator:
         }
         return abbreviations.get(category, "其他")
     
-    def _assess_automation_feasibility(self, case: TestCase) -> bool:
-        """评估自动化可行性 """
-        # 检查标题和描述中的关键词
-        text = f"{case.title} {case.description}".lower()
-        
-        # 检查自动化高可行性关键词
-        has_automation_keywords = any(keyword.lower() in text 
-                                     for keyword in self.automation_keywords)
-        
-        # 检查自动化低可行性关键词
-        has_manual_keywords = any(keyword.lower() in text 
-                                 for keyword in self.manual_keywords)
-        
-        # 检查步骤复杂度
-        step_count = len(case.steps)
-        is_simple = step_count <= 5
-        
-        # 综合判断
-        if has_manual_keywords:
-            return False
-        
-        if has_automation_keywords and is_simple:
-            return True
-        
-        # API、接口类测试默认可自动化
-        if any(keyword in text for keyword in ["api", "接口", "interface"]):
-            return True
-        
-        # 步骤简单的功能测试可自动化
-        if case.category == TestCategory.FUNCTIONAL and is_simple:
-            return True
-        
-        # 性能测试通常可自动化
-        if case.category == TestCategory.PERFORMANCE:
-            return True
-        
-        # 默认返回False
-        return False
+
     
     def _validate_and_deduplicate(self, cases: List[TestCase]) -> List[TestCase]:
         """验证和去重测试用例"""

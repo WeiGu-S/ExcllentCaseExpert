@@ -107,11 +107,7 @@ class XMindExporter:
             type_topic = info_topic.addSubTopic()
             type_topic.setTitle(f"类型: {test_case.case_type}")
             
-            # 自动化可行性
-            auto_topic = info_topic.addSubTopic()
-            auto_text = "可行" if test_case.automation_feasible else "不可行"
-            auto_icon = "✅" if test_case.automation_feasible else "❌"
-            auto_topic.setTitle(f"自动化: {auto_icon} {auto_text}")
+
             
             # 添加描述（如果有）
             if test_case.description:
@@ -184,12 +180,7 @@ class XMindExporter:
                 type_parts = [f"{t}({n})" for t, n in sorted(type_dist.items())]
                 type_topic.setTitle(f"类型分布: {', '.join(type_parts)}")
             
-            # 自动化比例
-            automation_count = sum(1 for case in test_cases if case.automation_feasible)
-            automation_ratio = (automation_count / len(test_cases) * 100) if test_cases else 0
-            
-            auto_topic = stats_topic.addSubTopic()
-            auto_topic.setTitle(f"自动化比例: {automation_ratio:.1f}% ({automation_count}/{len(test_cases)})")
+
             
         except Exception as e:
             self.logger.log_error(e, {"operation": "add_statistics_topic"})

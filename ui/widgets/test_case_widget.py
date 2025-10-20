@@ -52,9 +52,9 @@ class TestCaseWidget(QWidget):
         
         # 表格
         self.table = QTableWidget()
-        self.table.setColumnCount(6)
+        self.table.setColumnCount(5)
         self.table.setHorizontalHeaderLabels([
-            "ID", "标题", "类别", "优先级", "类型", "自动化"
+            "ID", "标题", "类别", "优先级", "类型"
         ])
         
         # 设置列宽模式
@@ -64,7 +64,6 @@ class TestCaseWidget(QWidget):
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)  # 类别
         header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)  # 优先级
         header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)  # 类型
-        header.setSectionResizeMode(5, QHeaderView.ResizeMode.ResizeToContents)  # 自动化
         
         # 设置表格属性
         self.table.setAlternatingRowColors(True)
@@ -151,15 +150,9 @@ class TestCaseWidget(QWidget):
         type_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
         self.table.setItem(row, 4, type_item)
         
-        # 自动化
-        automation_text = "✅" if case.automation_feasible else "❌"
-        automation_item = QTableWidgetItem(automation_text)
-        automation_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.table.setItem(row, 5, automation_item)
-        
         # 设置行工具提示
         tooltip = self._create_tooltip(case)
-        for col in range(6):
+        for col in range(5):
             item = self.table.item(row, col)
             if item:
                 item.setToolTip(tooltip)
@@ -200,7 +193,6 @@ class TestCaseWidget(QWidget):
             f"类别: {category}",
             f"优先级: {priority}",
             f"类型: {case.case_type}",
-            f"自动化: {'可行' if case.automation_feasible else '不可行'}",
             f"步骤数: {len(case.steps)}",
             "",
             "双击查看详细信息"
@@ -215,7 +207,6 @@ class TestCaseWidget(QWidget):
         # 统计各类别数量
         category_counts = {}
         priority_counts = {}
-        automation_count = 0
         
         for case in self.test_cases:
             # 类别统计
@@ -225,17 +216,9 @@ class TestCaseWidget(QWidget):
             # 优先级统计
             priority = case.priority.value if hasattr(case.priority, 'value') else str(case.priority)
             priority_counts[priority] = priority_counts.get(priority, 0) + 1
-            
-            # 自动化统计
-            if case.automation_feasible:
-                automation_count += 1
         
         # 构建统计文本
         stats_parts = [f"共 {total} 个测试用例"]
-        
-        if total > 0:
-            automation_percent = (automation_count / total) * 100
-            stats_parts.append(f"(自动化: {automation_count}/{total}, {automation_percent:.1f}%)")
         
         self.stats_label.setText(" ".join(stats_parts))
     
@@ -298,7 +281,6 @@ class TestCaseWidget(QWidget):
             f"类别: {category}",
             f"优先级: {priority}",
             f"类型: {case.case_type}",
-            f"自动化可行性: {'可行' if case.automation_feasible else '不可行'}",
             "",
         ]
         

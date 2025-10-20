@@ -77,7 +77,6 @@ class TestCase(BaseModel):
     case_type: str = Field(..., description="用例类型")
     steps: List[TestStep] = Field(..., description="测试步骤")
     expected_result: str = Field(..., description="最终期望结果")
-    automation_feasible: bool = Field(..., description="自动化可行性")
     description: str = Field(default="", description="用例描述")
 
     class Config:

@@ -25,7 +25,6 @@ def sample_test_cases():
                 TestStep(step_no=3, action="点击登录按钮", expected="登录成功")
             ],
             expected_result="用户成功登录系统",
-            automation_feasible=True,
             description="验证用户登录功能"
         ),
         TestCase(
@@ -40,7 +39,6 @@ def sample_test_cases():
                 TestStep(step_no=3, action="点击登录按钮", expected="显示错误提示")
             ],
             expected_result="系统显示密码错误提示",
-            automation_feasible=True,
             description="验证密码错误处理"
         ),
         TestCase(
@@ -54,7 +52,6 @@ def sample_test_cases():
                 TestStep(step_no=2, action="测量响应时间", expected="记录时间")
             ],
             expected_result="登录响应时间小于2秒",
-            automation_feasible=True,
             description="验证登录性能"
         )
     ]
@@ -128,15 +125,12 @@ class TestExportManager:
         assert stats["priority_distribution"]["P2"] == 1
         assert stats["category_distribution"]["功能测试"] == 2
         assert stats["category_distribution"]["性能测试"] == 1
-        assert stats["automation_ratio"] == 100.0
-        assert stats["automation_count"] == 3
     
     def test_calculate_statistics_empty(self, export_manager):
         """测试空列表的统计信息"""
         stats = export_manager._calculate_statistics([])
         
         assert stats["total_count"] == 0
-        assert stats["automation_ratio"] == 0.0
     
     def test_export_to_xmind_success(self, export_manager, sample_test_cases, temp_output_dir):
         """测试成功导出 XMind"""

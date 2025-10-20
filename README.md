@@ -284,7 +284,6 @@ ui:
         }
       ],
       "expected_result": "用户成功登录系统",
-      "automation_feasible": true,
       "description": "验证用户使用正确凭据登录系统"
     }
   ]

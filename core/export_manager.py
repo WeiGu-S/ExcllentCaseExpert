@@ -64,7 +64,6 @@ class ExportManager:
                             for step in case.steps
                         ],
                         "expected_result": case.expected_result,
-                        "automation_feasible": case.automation_feasible,
                         "description": case.description
                     }
                     for case in cases
@@ -143,8 +142,7 @@ class ExportManager:
                 "total_count": 0,
                 "priority_distribution": {},
                 "category_distribution": {},
-                "type_distribution": {},
-                "automation_ratio": 0.0
+                "type_distribution": {}
             }
         
         # 优先级分布
@@ -167,15 +165,11 @@ class ExportManager:
             case_type = case.case_type
             type_dist[case_type] = type_dist.get(case_type, 0) + 1
         
-        # 自动化比例
-        automation_count = sum(1 for case in test_cases if case.automation_feasible)
-        automation_ratio = (automation_count / len(test_cases)) * 100 if test_cases else 0.0
+
         
         return {
             "total_count": len(test_cases),
             "priority_distribution": priority_dist,
             "category_distribution": category_dist,
-            "type_distribution": type_dist,
-            "automation_ratio": round(automation_ratio, 2),
-            "automation_count": automation_count
+            "type_distribution": type_dist
         }

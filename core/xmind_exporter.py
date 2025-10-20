@@ -47,26 +47,20 @@ class XMindExporter:
         """创建 XMind 工作簿"""
         try:
             # 创建新工作簿
-            from xmind.core import workbook
-            from xmind.core.styles import StylesBookDocument
-            from xmind.core.comments import CommentsBookDocument
-            import tempfile
+            from xmind.core.workbook import WorkbookDocument
             
-            self.workbook = workbook.WorkbookDocument()
-            
-            # 设置临时路径（xmind 库需要一个路径来保存）
-            temp_file = tempfile.NamedTemporaryFile(suffix='.xmind', delete=False)
-            temp_path = temp_file.name
-            temp_file.close()
-            self.workbook.set_path(temp_path)
+            self.workbook = WorkbookDocument()
             
             # 初始化必需的组件
-            if not self.workbook.stylesbook:
+            if not hasattr(self.workbook, 'stylesbook') or self.workbook.stylesbook is None:
+                from xmind.core.styles import StylesBookDocument
                 self.workbook.stylesbook = StylesBookDocument()
             
-            if not self.workbook.commentsbook:
+            if not hasattr(self.workbook, 'commentsbook') or self.workbook.commentsbook is None:
+                from xmind.core.comments import CommentsBookDocument
                 self.workbook.commentsbook = CommentsBookDocument()
             
+            # 获取第一个工作表
             self.sheet = self.workbook.getPrimarySheet()
             
             # 设置根主题
@@ -208,12 +202,52 @@ class XMindExporter:
             output_path: 输出文件路径
         """
         try:
+            import zipfile
+            import io
+            
             # 确保输出目录存在
             output_file = Path(output_path)
             output_file.parent.mkdir(parents=True, exist_ok=True)
             
-            # 保存工作簿（except_attachments=True 避免读取原始文件）
-            xmind.save(self.workbook, str(output_file), except_attachments=True)
+            # 直接创建 ZIP 文件
+            with zipfile.ZipFile(str(output_file), 'w', zipfile.ZIP_DEFLATED) as zf:
+                # 生成 content.xml
+                content_stream = io.StringIO()
+                self.workbook.output(content_stream)
+                zf.writestr('content.xml', content_stream.getvalue().encode('utf-8'))
+                
+                # 生成 styles.xml
+                styles_stream = io.StringIO()
+                self.workbook.stylesbook.output(styles_stream)
+                zf.writestr('styles.xml', styles_stream.getvalue().encode('utf-8'))
+                
+                # 生成 comments.xml
+                comments_stream = io.StringIO()
+                self.workbook.commentsbook.output(comments_stream)
+                zf.writestr('comments.xml', comments_stream.getvalue().encode('utf-8'))
+                
+                # 添加 meta.xml
+                meta_xml = '''<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<meta xmlns="urn:xmind:xmap:xmlns:meta:2.0" version="2.0">
+    <Author>
+        <Name>ExcellentCaseExpert</Name>
+    </Author>
+    <Create>
+        <Time>{}</Time>
+    </Create>
+</meta>'''.format(datetime.now().strftime("%Y-%m-%dT%H:%M:%S"))
+                zf.writestr('meta.xml', meta_xml.encode('utf-8'))
+                
+                # 添加 META-INF/manifest.xml
+                manifest_xml = '''<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<manifest xmlns="urn:xmind:xmap:xmlns:manifest:1.0">
+    <file-entry full-path="content.xml" media-type="text/xml"/>
+    <file-entry full-path="META-INF/" media-type=""/>
+    <file-entry full-path="meta.xml" media-type="text/xml"/>
+    <file-entry full-path="styles.xml" media-type="text/xml"/>
+    <file-entry full-path="comments.xml" media-type="text/xml"/>
+</manifest>'''
+                zf.writestr('META-INF/manifest.xml', manifest_xml.encode('utf-8'))
             
             self.logger.log_operation("xmind_saved", output_path=output_path)
             

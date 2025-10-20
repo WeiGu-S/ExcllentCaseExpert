@@ -187,6 +187,10 @@ class MainWindow(QMainWindow):
         # 模型标签
         self.model_label = QLabel(f"模型: {self.config.ai_model.model_name}")
         self.statusbar.addPermanentWidget(self.model_label)
+
+        # author
+        self.author_label = QLabel("by @未卿尘")
+        self.statusbar.addPermanentWidget(self.author_label)
         
         self.logger.debug("状态栏创建完成")
     

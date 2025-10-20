@@ -95,38 +95,31 @@ class XMindExporter:
             # 添加优先级标记
             self._add_priority_marker(case_topic, test_case.priority)
             
-            # 添加基本信息子主题
-            info_topic = case_topic.addSubTopic()
-            info_topic.setTitle("📋 基本信息")
-            
-            # ID
-            id_topic = info_topic.addSubTopic()
-            id_topic.setTitle(f"ID: {test_case.test_case_id}")
-            
-            # 类型
-            type_topic = info_topic.addSubTopic()
-            type_topic.setTitle(f"类型: {test_case.case_type}")
-            
-
-            
-            # 添加描述（如果有）
+            # 1. 添加描述子主题（如果有）
             if test_case.description:
-                desc_topic = info_topic.addSubTopic()
-                desc_topic.setTitle(f"描述: {test_case.description}")
+                desc_topic = case_topic.addSubTopic()
+                desc_topic.setTitle("📝 描述")
+                desc_detail = desc_topic.addSubTopic()
+                desc_detail.setTitle(test_case.description)
             
-            # 添加测试步骤子主题
+            # 2. 添加测试步骤子主题
             if test_case.steps:
                 steps_topic = case_topic.addSubTopic()
-                steps_topic.setTitle("📝 测试步骤")
+                steps_topic.setTitle("🔧 测试步骤")
                 
                 for step in test_case.steps:
                     step_topic = steps_topic.addSubTopic()
-                    step_text = f"{step.step_no}. {step.action} → {step.expected}"
+                    step_text = f"{step.step_no}. {step.action}"
                     step_topic.setTitle(step_text)
+                    
+                    # 为每个步骤添加期望结果子节点
+                    if step.expected:
+                        expected_topic = step_topic.addSubTopic()
+                        expected_topic.setTitle(f"期望: {step.expected}")
             
-            # 添加预期结果子主题
+            # 3. 添加期望结果子主题
             result_topic = case_topic.addSubTopic()
-            result_topic.setTitle("✅ 预期结果")
+            result_topic.setTitle("✅ 期望结果")
             
             result_detail = result_topic.addSubTopic()
             result_detail.setTitle(test_case.expected_result)
@@ -169,18 +162,15 @@ class XMindExporter:
                 category_parts = [f"{c}({n})" for c, n in sorted(category_dist.items())]
                 category_topic.setTitle(f"类别分布: {', '.join(category_parts)}")
             
-            # 用例类型分布
-            type_dist = {}
-            for case in test_cases:
-                case_type = case.case_type
-                type_dist[case_type] = type_dist.get(case_type, 0) + 1
-            
-            if type_dist:
-                type_topic = stats_topic.addSubTopic()
-                type_parts = [f"{t}({n})" for t, n in sorted(type_dist.items())]
-                type_topic.setTitle(f"类型分布: {', '.join(type_parts)}")
-            
-
+            # 步骤数量统计
+            step_counts = [len(case.steps) for case in test_cases if case.steps]
+            if step_counts:
+                avg_steps = sum(step_counts) / len(step_counts)
+                max_steps = max(step_counts)
+                min_steps = min(step_counts)
+                
+                steps_topic = stats_topic.addSubTopic()
+                steps_topic.setTitle(f"步骤统计: 平均{avg_steps:.1f}步, 最多{max_steps}步, 最少{min_steps}步")
             
         except Exception as e:
             self.logger.log_error(e, {"operation": "add_statistics_topic"})

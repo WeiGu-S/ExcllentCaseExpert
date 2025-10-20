@@ -42,17 +42,17 @@ def sample_test_cases():
             description="验证密码错误处理"
         ),
         TestCase(
-            test_case_id="TC_性能_001",
-            title="登录响应时间",
-            category=TestCategory.PERFORMANCE,
+            test_case_id="TC_兼容_001",
+            title="登录兼容性验证",
+            category=TestCategory.COMPATIBILITY,
             priority=Priority.P1,
-            case_type="性能测试",
+            case_type="兼容性测试",
             steps=[
-                TestStep(step_no=1, action="发起登录请求", expected="请求发送成功"),
-                TestStep(step_no=2, action="测量响应时间", expected="记录时间")
+                TestStep(step_no=1, action="在不同设备上打开登录页面", expected="页面正常显示"),
+                TestStep(step_no=2, action="执行登录操作", expected="功能正常")
             ],
-            expected_result="登录响应时间小于2秒",
-            description="验证登录性能"
+            expected_result="登录功能在各设备上兼容性良好",
+            description="验证登录兼容性"
         )
     ]
 
@@ -112,9 +112,9 @@ class TestExportManager:
         grouped = export_manager._group_by_category(sample_test_cases)
         
         assert "功能测试" in grouped
-        assert "性能测试" in grouped
+        assert "兼容性测试" in grouped
         assert len(grouped["功能测试"]) == 2
-        assert len(grouped["性能测试"]) == 1
+        assert len(grouped["兼容性测试"]) == 1
     
     def test_calculate_statistics(self, export_manager, sample_test_cases):
         """测试统计信息计算"""
@@ -124,7 +124,7 @@ class TestExportManager:
         assert stats["priority_distribution"]["P1"] == 2
         assert stats["priority_distribution"]["P2"] == 1
         assert stats["category_distribution"]["功能测试"] == 2
-        assert stats["category_distribution"]["性能测试"] == 1
+        assert stats["category_distribution"]["兼容性测试"] == 1
     
     def test_calculate_statistics_empty(self, export_manager):
         """测试空列表的统计信息"""

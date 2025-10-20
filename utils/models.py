@@ -10,10 +10,8 @@ from enum import Enum
 
 
 class TestCategory(str, Enum):
-    """测试类别枚举"""
+    """测试类别枚举（移动C端测试专用）"""
     FUNCTIONAL = "功能测试"
-    PERFORMANCE = "性能测试"
-    SECURITY = "安全测试"
     COMPATIBILITY = "兼容性测试"
     USABILITY = "易用性测试"
 

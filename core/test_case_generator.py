@@ -355,11 +355,9 @@ class TestCaseGenerator:
         return case
     
     def _get_category_abbreviation(self, category: TestCategory) -> str:
-        """获取测试类别缩写"""
+        """获取测试类别缩写（移动C端测试专用）"""
         abbreviations = {
             TestCategory.FUNCTIONAL: "功能",
-            TestCategory.PERFORMANCE: "性能",
-            TestCategory.SECURITY: "安全",
             TestCategory.COMPATIBILITY: "兼容",
             TestCategory.USABILITY: "易用"
         }

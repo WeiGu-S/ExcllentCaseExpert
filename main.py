@@ -84,7 +84,7 @@ def setup_application() -> QApplication:
     
     # 设置应用程序信息
     app.setApplicationName("ExcellentCaseExpert")
-    app.setApplicationDisplayName("ExcellentCaseExpert - AI 测试用例生成系统")
+    app.setApplicationDisplayName("ExcellentCaseExpert（by @WeiGu-S）")
     app.setOrganizationName("ExcellentCase")
     app.setOrganizationDomain("excellentcase.com")
     

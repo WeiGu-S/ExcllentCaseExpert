@@ -64,7 +64,7 @@ class MainWindow(QMainWindow):
     
     def init_ui(self):
         """初始化界面"""
-        self.setWindowTitle("ExcellentCaseExpert - AI 测试用例生成系统")
+        self.setWindowTitle("ExcellentCaseExpert - AI 测试用例生成系统（by @WeiGu-S）")
         self.setGeometry(
             100, 100,
             self.config.ui.window_width,
@@ -188,9 +188,9 @@ class MainWindow(QMainWindow):
         self.model_label = QLabel(f"模型: {self.config.ai_model.model_name}")
         self.statusbar.addPermanentWidget(self.model_label)
 
-        # author
-        self.author_label = QLabel("by @未卿尘")
-        self.statusbar.addPermanentWidget(self.author_label)
+        # # author
+        # self.author_label = QLabel("by @未卿尘")
+        # self.statusbar.addPermanentWidget(self.author_label)
         
         self.logger.debug("状态栏创建完成")
     

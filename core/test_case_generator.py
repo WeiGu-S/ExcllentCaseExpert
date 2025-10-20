@@ -88,7 +88,14 @@ class TestCaseGenerator:
         
         for test_point_dict in test_point_list:
             try:
-                test_point = TestPoint(**test_point_dict) if isinstance(test_point_dict, dict) else test_point_dict
+                # 如果是字典，先检查类别是否支持
+                if isinstance(test_point_dict, dict):
+                    if not self._is_supported_category(test_point_dict.get("category")):
+                        self.logger.info(f"跳过不支持的测试类别: {test_point_dict.get('category')} - {test_point_dict.get('description', 'N/A')}")
+                        continue
+                    test_point = TestPoint(**test_point_dict)
+                else:
+                    test_point = test_point_dict
                 
                 # 基于AI场景直接生成实用测试用例
                 cases = self._generate_practical_cases(test_point)
@@ -136,7 +143,7 @@ class TestCaseGenerator:
         
         # 生成贴近真实的测试步骤
         case.steps = self._generate_realistic_steps(test_point, scenario_info)
-        case.expected_result = scenario_info['expected_result']
+        case.expected_result = self._generate_final_expected_result(test_point, scenario_info)
         
         return case
     
@@ -399,30 +406,39 @@ class TestCaseGenerator:
     
     def _extract_steps_from_scenario(self, scenario: str, test_point: TestPoint) -> Optional[List[TestStep]]:
         """从场景描述中智能提取测试步骤"""
-        steps = []
+        # 使用更智能的场景解析
+        parsed_scenario = self._parse_scenario_structure(scenario)
         
-        # 分析场景复杂度
-        complexity = self._analyze_scenario_complexity(scenario)
-        
-        # 分析场景中的关键动作
-        actions = self._identify_scenario_actions(scenario, complexity)
-        
-        if not actions:
+        if not parsed_scenario:
             return None
         
-        # 为每个动作生成步骤
-        for i, action_info in enumerate(actions, 1):
-            step = TestStep(
-                step_no=i,
-                action=action_info["action"],
-                expected=action_info["expected"]
-            )
-            steps.append(step)
+        steps = []
+        step_no = 1
+        seen_actions = set()
         
-        # 根据复杂度确定最少步骤数
-        min_steps = self._get_min_steps_by_complexity(complexity)
+        # 合并所有步骤并去重
+        all_actions = []
+        if parsed_scenario.get("preconditions"):
+            all_actions.extend(parsed_scenario["preconditions"])
+        if parsed_scenario.get("main_actions"):
+            all_actions.extend(parsed_scenario["main_actions"])
+        if parsed_scenario.get("validations"):
+            all_actions.extend(parsed_scenario["validations"])
         
-        return steps if len(steps) >= min_steps else None
+        # 生成去重的步骤
+        for action_info in all_actions:
+            action_key = action_info["action"][:30]  # 使用前30个字符作为去重键
+            if action_key not in seen_actions:
+                seen_actions.add(action_key)
+                step = TestStep(
+                    step_no=step_no,
+                    action=action_info["action"],
+                    expected=action_info["expected"]
+                )
+                steps.append(step)
+                step_no += 1
+        
+        return steps if len(steps) >= 2 else None
     
     def _identify_scenario_actions(self, scenario: str, complexity: str = "中等") -> List[Dict]:
         """识别场景中的关键动作"""
@@ -516,6 +532,561 @@ class TestCaseGenerator:
         # 根据复杂度限制步骤数量
         max_steps = self._get_max_steps_by_complexity(complexity)
         return unique_actions[:max_steps]
+    
+    def _parse_scenario_structure(self, scenario: str) -> Optional[Dict]:
+        """解析场景结构，提取前置条件、主要操作和验证点"""
+        if not scenario or len(scenario) < 10:
+            return None
+        
+        parsed = {
+            "preconditions": [],
+            "main_actions": [],
+            "validations": []
+        }
+        
+        # 分句处理
+        sentences = self._split_scenario_sentences(scenario)
+        
+        for sentence in sentences:
+            sentence = sentence.strip()
+            if not sentence:
+                continue
+            
+            # 分类句子类型
+            sentence_type = self._classify_sentence_type(sentence)
+            
+            if sentence_type == "precondition":
+                action_expected = self._extract_action_expected_from_sentence(sentence, "precondition")
+                if action_expected:
+                    parsed["preconditions"].append(action_expected)
+            elif sentence_type == "main_action":
+                action_expected = self._extract_action_expected_from_sentence(sentence, "main_action")
+                if action_expected:
+                    parsed["main_actions"].append(action_expected)
+            elif sentence_type == "validation":
+                action_expected = self._extract_action_expected_from_sentence(sentence, "validation")
+                if action_expected:
+                    parsed["validations"].append(action_expected)
+        
+        # 确保至少有主要操作
+        if not parsed["main_actions"] and sentences:
+            # 如果没有识别出主要操作，将第一个句子作为主要操作
+            first_sentence = sentences[0].strip()
+            action_expected = self._extract_action_expected_from_sentence(first_sentence, "main_action")
+            if action_expected:
+                parsed["main_actions"].append(action_expected)
+        
+        return parsed if any(parsed.values()) else None
+    
+    def _split_scenario_sentences(self, scenario: str) -> List[str]:
+        """将场景分割成句子"""
+        # 按常见分隔符分割
+        import re
+        sentences = re.split(r'[，。；,;]|，然后|，接着|，再|，最后|，验证', scenario)
+        
+        # 清理空句子
+        sentences = [s.strip() for s in sentences if s.strip()]
+        
+        return sentences
+    
+    def _classify_sentence_type(self, sentence: str) -> str:
+        """分类句子类型"""
+        # 前置条件关键词
+        precondition_keywords = ["打开", "进入", "启动", "登录", "准备", "设置"]
+        
+        # 验证关键词
+        validation_keywords = ["验证", "检查", "确认", "查看", "观察", "测试"]
+        
+        # 检查是否为前置条件
+        if any(keyword in sentence[:10] for keyword in precondition_keywords):
+            return "precondition"
+        
+        # 检查是否为验证步骤
+        if any(keyword in sentence for keyword in validation_keywords):
+            return "validation"
+        
+        # 默认为主要操作
+        return "main_action"
+    
+    def _extract_action_expected_from_sentence(self, sentence: str, sentence_type: str) -> Optional[Dict]:
+        """从句子中提取操作和期望结果"""
+        if not sentence:
+            return None
+        
+        # 根据句子类型生成不同的操作和期望
+        if sentence_type == "precondition":
+            return self._generate_precondition_step(sentence)
+        elif sentence_type == "main_action":
+            return self._generate_main_action_step(sentence)
+        elif sentence_type == "validation":
+            return self._generate_validation_step(sentence)
+        
+        return None
+    
+    def _generate_precondition_step(self, sentence: str) -> Dict:
+        """生成前置条件步骤"""
+        # 提取关键信息
+        if "登录" in sentence:
+            return {
+                "action": "使用有效账号登录应用",
+                "expected": "登录成功，进入主界面"
+            }
+        elif "打开" in sentence or "启动" in sentence:
+            app_context = self._extract_app_context(sentence)
+            return {
+                "action": f"打开应用，进入{app_context}",
+                "expected": "应用启动成功，页面加载完成"
+            }
+        elif "进入" in sentence:
+            page_context = self._extract_page_context(sentence)
+            return {
+                "action": f"导航到{page_context}",
+                "expected": "页面跳转成功，内容正常显示"
+            }
+        else:
+            return {
+                "action": sentence,
+                "expected": "前置条件满足，环境准备就绪"
+            }
+    
+    def _generate_main_action_step(self, sentence: str) -> Dict:
+        """生成主要操作步骤"""
+        # 根据操作类型生成具体的步骤
+        if "输入" in sentence:
+            input_content = self._extract_input_content(sentence)
+            if "用户名" in sentence:
+                return {
+                    "action": f"在用户名输入框中输入有效的用户名",
+                    "expected": "用户名输入成功，字段显示正常"
+                }
+            elif "密码" in sentence:
+                return {
+                    "action": f"在密码输入框中输入正确的密码",
+                    "expected": "密码输入成功，显示为密文"
+                }
+            elif "关键词" in sentence or "搜索" in sentence:
+                return {
+                    "action": f"在搜索框中输入商品关键词",
+                    "expected": "搜索词输入成功，搜索建议显示"
+                }
+            else:
+                return {
+                    "action": f"在相应字段输入{input_content}",
+                    "expected": "输入内容正确显示，格式验证通过"
+                }
+        elif "点击" in sentence:
+            click_target = self._extract_click_target(sentence)
+            if "登录" in sentence:
+                return {
+                    "action": "点击登录按钮",
+                    "expected": "登录请求发送，显示加载状态"
+                }
+            elif "搜索" in sentence:
+                return {
+                    "action": "点击搜索按钮或按回车键",
+                    "expected": "搜索请求发送，开始加载结果"
+                }
+            elif "购物车" in sentence or "加入" in sentence:
+                return {
+                    "action": "点击加入购物车按钮",
+                    "expected": "商品添加成功，购物车图标更新"
+                }
+            elif "结算" in sentence:
+                return {
+                    "action": "点击结算按钮",
+                    "expected": "跳转到结算页面，商品信息显示"
+                }
+            elif "支付" in sentence:
+                return {
+                    "action": "点击支付按钮",
+                    "expected": "跳转到支付页面，显示支付金额和支付方式选项"
+                }
+            elif "保存" in sentence:
+                return {
+                    "action": "点击保存按钮",
+                    "expected": "数据保存成功，显示保存确认提示"
+                }
+            elif "确认" in sentence:
+                return {
+                    "action": "点击确认按钮",
+                    "expected": "操作确认执行，相关状态更新"
+                }
+            elif "取消" in sentence:
+                return {
+                    "action": "点击取消按钮",
+                    "expected": "操作取消，返回上一步状态"
+                }
+            else:
+                return {
+                    "action": f"点击{click_target}",
+                    "expected": self._generate_context_specific_expected(sentence, "点击")
+                }
+        elif "选择" in sentence:
+            if "商品" in sentence:
+                return {
+                    "action": "选择目标商品或商品规格",
+                    "expected": "商品高亮显示，规格选项展开，价格信息更新"
+                }
+            elif "地址" in sentence:
+                return {
+                    "action": "选择收货地址",
+                    "expected": "地址被标记为选中状态，配送费用和时间更新"
+                }
+            elif "支付方式" in sentence:
+                return {
+                    "action": "选择支付方式",
+                    "expected": "支付方式图标高亮，相关支付信息显示"
+                }
+            elif "类别" in sentence or "分类" in sentence:
+                return {
+                    "action": "选择商品类别",
+                    "expected": "类别被选中，相关商品筛选显示"
+                }
+            else:
+                select_target = self._extract_select_target(sentence)
+                return {
+                    "action": f"选择{select_target}",
+                    "expected": self._generate_context_specific_expected(sentence, "选择")
+                }
+        elif "浏览" in sentence:
+            return {
+                "action": "浏览页面内容和商品信息",
+                "expected": "页面内容正常显示，图片加载完成"
+            }
+        elif "修改" in sentence or "编辑" in sentence:
+            if "信息" in sentence:
+                return {
+                    "action": "修改个人信息字段",
+                    "expected": "信息修改成功，字段内容更新"
+                }
+            else:
+                return {
+                    "action": "执行修改操作",
+                    "expected": "修改内容保存，界面更新"
+                }
+        elif "保存" in sentence:
+            return {
+                "action": "点击保存按钮确认修改",
+                "expected": "保存操作执行，显示保存状态"
+            }
+        elif "滑动" in sentence or "拖拽" in sentence:
+            return {
+                "action": "执行滑动或拖拽操作",
+                "expected": "界面响应流畅，内容正常更新"
+            }
+        else:
+            # 通用操作，尽量保持原句的具体性
+            return {
+                "action": sentence,
+                "expected": "操作执行成功，功能正常响应"
+            }
+    
+    def _generate_validation_step(self, sentence: str) -> Dict:
+        """生成验证步骤"""
+        # 更具体的验证步骤生成
+        if "跳转" in sentence:
+            if "主页" in sentence or "首页" in sentence:
+                return {
+                    "action": "检查页面跳转结果",
+                    "expected": "成功跳转到主页，显示用户个人信息和主要功能入口"
+                }
+            elif "详情" in sentence:
+                return {
+                    "action": "检查页面跳转结果", 
+                    "expected": "成功跳转到详情页，商品图片、价格、描述信息完整显示"
+                }
+            elif "结果" in sentence:
+                return {
+                    "action": "检查搜索结果页面",
+                    "expected": "显示相关商品列表，包含商品图片、名称、价格等关键信息"
+                }
+            elif "订单" in sentence:
+                return {
+                    "action": "检查订单页面跳转",
+                    "expected": "跳转到订单详情页，显示订单号、商品信息、支付状态"
+                }
+            else:
+                target_page = self._extract_target_page(sentence)
+                return {
+                    "action": "检查页面跳转结果",
+                    "expected": f"成功跳转到{target_page}，页面内容加载完整"
+                }
+        elif "显示" in sentence:
+            if "商品" in sentence:
+                return {
+                    "action": "检查商品显示效果",
+                    "expected": "商品列表正确显示，图片清晰，价格、评分等信息准确"
+                }
+            elif "错误" in sentence or "提示" in sentence:
+                return {
+                    "action": "检查错误提示信息",
+                    "expected": "显示明确的错误提示，提示内容友好易懂"
+                }
+            elif "成功" in sentence:
+                return {
+                    "action": "检查成功提示信息",
+                    "expected": "显示操作成功提示，界面状态正确更新"
+                }
+            else:
+                display_content = self._extract_display_content(sentence)
+                return {
+                    "action": "检查界面显示内容",
+                    "expected": f"正确显示{display_content}，布局整齐美观"
+                }
+        elif "添加" in sentence and "购物车" in sentence:
+            return {
+                "action": "验证商品添加到购物车",
+                "expected": "购物车图标显示商品数量，商品信息正确保存"
+            }
+        elif "数量" in sentence:
+            return {
+                "action": "验证数量变化",
+                "expected": "数量显示正确更新，相关价格计算准确"
+            }
+        elif "信息" in sentence and "更新" in sentence:
+            return {
+                "action": "验证信息更新结果",
+                "expected": "个人信息成功更新，页面显示最新内容"
+            }
+        elif "支付" in sentence and "成功" in sentence:
+            return {
+                "action": "验证支付完成状态",
+                "expected": "支付成功，生成订单号，发送确认短信或邮件"
+            }
+        elif "登录" in sentence and "成功" in sentence:
+            return {
+                "action": "验证登录状态",
+                "expected": "用户头像和昵称显示，个人中心功能可正常访问"
+            }
+        else:
+            # 从句子中提取具体的验证内容
+            verification_content = self._extract_specific_verification(sentence)
+            return {
+                "action": f"验证{verification_content['action']}",
+                "expected": verification_content['expected']
+            }
+    
+    def _extract_app_context(self, sentence: str) -> str:
+        """提取应用上下文"""
+        contexts = ["主页", "首页", "登录页", "商品页", "购物车", "个人中心", "设置页"]
+        for context in contexts:
+            if context in sentence:
+                return context
+        return "相关页面"
+    
+    def _extract_page_context(self, sentence: str) -> str:
+        """提取页面上下文"""
+        if "详情" in sentence:
+            return "详情页面"
+        elif "列表" in sentence:
+            return "列表页面"
+        elif "设置" in sentence:
+            return "设置页面"
+        elif "个人" in sentence:
+            return "个人中心"
+        else:
+            return "目标页面"
+    
+    def _extract_input_content(self, sentence: str) -> str:
+        """提取输入内容"""
+        if "用户名" in sentence:
+            return "用户名"
+        elif "密码" in sentence:
+            return "密码"
+        elif "手机号" in sentence:
+            return "手机号码"
+        elif "邮箱" in sentence:
+            return "邮箱地址"
+        elif "关键词" in sentence:
+            return "搜索关键词"
+        else:
+            return "相关信息"
+    
+    def _extract_click_target(self, sentence: str) -> str:
+        """提取点击目标"""
+        if "登录" in sentence:
+            return "登录按钮"
+        elif "搜索" in sentence:
+            return "搜索按钮"
+        elif "提交" in sentence:
+            return "提交按钮"
+        elif "确认" in sentence:
+            return "确认按钮"
+        elif "按钮" in sentence:
+            return "相关按钮"
+        else:
+            return "目标元素"
+    
+    def _extract_select_target(self, sentence: str) -> str:
+        """提取选择目标"""
+        if "商品" in sentence:
+            return "目标商品"
+        elif "选项" in sentence:
+            return "相关选项"
+        elif "类别" in sentence:
+            return "商品类别"
+        else:
+            return "目标项目"
+    
+    def _extract_target_page(self, sentence: str) -> str:
+        """提取目标页面"""
+        if "主页" in sentence or "首页" in sentence:
+            return "主页面"
+        elif "详情" in sentence:
+            return "详情页面"
+        elif "结果" in sentence:
+            return "结果页面"
+        else:
+            return "目标页面"
+    
+    def _extract_display_content(self, sentence: str) -> str:
+        """提取显示内容"""
+        if "错误" in sentence:
+            return "错误提示信息"
+        elif "成功" in sentence:
+            return "成功提示信息"
+        elif "结果" in sentence:
+            return "操作结果"
+        else:
+            return "相关内容"
+    
+    def _extract_specific_verification(self, sentence: str) -> Dict:
+        """提取具体的验证内容"""
+        # 根据句子内容生成具体的验证动作和期望
+        if "功能" in sentence:
+            return {
+                "action": "功能可用性",
+                "expected": "功能正常运行，响应及时，无异常错误"
+            }
+        elif "界面" in sentence:
+            return {
+                "action": "界面显示效果",
+                "expected": "界面布局合理，元素对齐，色彩搭配协调"
+            }
+        elif "数据" in sentence:
+            return {
+                "action": "数据准确性",
+                "expected": "数据内容准确，格式正确，实时同步"
+            }
+        elif "状态" in sentence:
+            return {
+                "action": "系统状态",
+                "expected": "状态显示正确，状态变化及时反馈"
+            }
+        elif "流程" in sentence:
+            return {
+                "action": "业务流程",
+                "expected": "流程执行顺畅，各环节衔接正常"
+            }
+        else:
+            # 提取句子中的关键词作为验证点
+            key_words = self._extract_key_words(sentence)
+            return {
+                "action": f"{key_words}的正确性",
+                "expected": f"{key_words}符合预期要求，无异常情况"
+            }
+    
+    def _extract_key_words(self, sentence: str) -> str:
+        """从句子中提取关键词"""
+        # 移除常见的动词和助词
+        import re
+        cleaned = re.sub(r'(验证|检查|确认|测试|是否|能够|正确|成功)', '', sentence)
+        cleaned = cleaned.strip()
+        
+        # 如果清理后为空，返回默认值
+        if not cleaned:
+            return "操作结果"
+        
+        # 限制长度
+        if len(cleaned) > 10:
+            cleaned = cleaned[:8] + "..."
+        
+        return cleaned
+    
+    def _generate_context_specific_expected(self, sentence: str, action_type: str) -> str:
+        """根据上下文生成具体的期望结果"""
+        # 根据句子中的业务上下文生成期望结果
+        if "登录" in sentence:
+            if action_type == "点击":
+                return "登录验证开始，显示加载动画，验证用户凭据"
+            elif action_type == "选择":
+                return "登录选项被选中，相关登录方式激活"
+        elif "搜索" in sentence:
+            if action_type == "点击":
+                return "搜索执行，显示搜索进度，准备展示结果"
+            elif action_type == "选择":
+                return "搜索条件被应用，筛选范围更新"
+        elif "购物车" in sentence:
+            if action_type == "点击":
+                return "商品添加到购物车，购物车数量增加，显示添加成功动画"
+            elif action_type == "选择":
+                return "购物车商品被选中，可进行批量操作"
+        elif "支付" in sentence:
+            if action_type == "点击":
+                return "支付流程启动，验证支付环境，显示支付选项"
+            elif action_type == "选择":
+                return "支付选项确认，显示支付详情和安全提示"
+        elif "个人" in sentence or "用户" in sentence:
+            if action_type == "点击":
+                return "个人信息页面打开，显示用户详细资料"
+            elif action_type == "选择":
+                return "个人设置选项被选中，相关配置显示"
+        elif "商品" in sentence:
+            if action_type == "点击":
+                return "商品详情展开，显示商品图片、价格、评价等信息"
+            elif action_type == "选择":
+                return "商品被加入选择列表，可进行对比或批量操作"
+        else:
+            # 通用的上下文相关期望
+            context_expectations = {
+                "点击": "界面响应迅速，相关功能模块激活，用户反馈明确",
+                "选择": "选项状态更新，相关信息联动显示，操作反馈及时",
+                "输入": "输入内容实时验证，格式提示友好，错误处理得当",
+                "滑动": "页面滑动流畅，内容加载及时，交互体验良好"
+            }
+            return context_expectations.get(action_type, "操作执行成功，系统响应正常")
+    
+    def _generate_final_expected_result(self, test_point: TestPoint, scenario_info: Dict) -> str:
+        """生成最终的期望结果"""
+        scenario = scenario_info["description"]
+        
+        # 根据测试要点和场景生成具体的最终期望结果
+        if "登录" in test_point.description:
+            if "成功" in scenario:
+                return "用户成功登录系统，个人信息正确显示，可正常访问各功能模块"
+            elif "错误" in scenario:
+                return "系统正确识别错误信息，显示友好的错误提示，引导用户重新输入"
+            else:
+                return "登录流程完整执行，用户身份验证准确，系统安全性得到保障"
+        
+        elif "搜索" in test_point.description:
+            return "搜索功能正常运行，结果准确相关，用户能够快速找到目标商品"
+        
+        elif "购物车" in test_point.description:
+            return "购物车功能完整可用，商品信息准确保存，数量和价格计算正确"
+        
+        elif "支付" in test_point.description:
+            return "支付流程安全可靠，订单生成成功，用户收到确认通知"
+        
+        elif "个人" in test_point.description or "信息" in test_point.description:
+            return "个人信息管理功能正常，数据更新及时，隐私保护到位"
+        
+        elif test_point.category == TestCategory.COMPATIBILITY:
+            return "功能在不同设备和环境下表现一致，兼容性良好，用户体验统一"
+        
+        elif test_point.category == TestCategory.USABILITY:
+            return "界面操作直观易懂，用户体验流畅，功能易于发现和使用"
+        
+        else:
+            # 根据场景内容生成通用的最终期望
+            if "验证" in scenario and "成功" in scenario:
+                return "功能验证通过，操作结果符合预期，系统运行稳定可靠"
+            elif "显示" in scenario:
+                return "信息显示准确完整，界面布局合理，用户获得良好的视觉体验"
+            elif "跳转" in scenario:
+                return "页面跳转流畅自然，内容加载及时，导航逻辑清晰明确"
+            else:
+                return "功能执行完整准确，用户操作得到及时反馈，整体体验良好"
     
     def _get_min_steps_by_complexity(self, complexity: str) -> int:
         """根据复杂度获取最少步骤数"""
@@ -1160,3 +1731,17 @@ class TestCaseGenerator:
         steps_key = f"{len(case.steps)}_{case.category.value}"
         
         return f"{title_key}_{steps_key}"
+    
+    def _is_supported_category(self, category: str) -> bool:
+        """检查测试类别是否被支持"""
+        if not category:
+            return False
+            
+        # 支持的测试类别
+        supported_categories = {
+            "功能测试",
+            "兼容性测试", 
+            "易用性测试"
+        }
+        
+        return category in supported_categories

@@ -30,21 +30,34 @@ class OCRWorker(QThread):
         try:
             self.logger.info(f"OCR 工作线程启动: {self.file_path}")
             
+            import time
+            
             # 阶段 1: 开始处理
-            self.progress.emit(10)
+            self.progress.emit(5)
             self.status.emit("正在加载文件...")
+            time.sleep(0.2)
             
             # 阶段 2: 图像预处理
-            self.progress.emit(30)
-            self.status.emit("正在预处理图像...")
+            self.progress.emit(15)
+            self.status.emit("正在读取图像...")
+            time.sleep(0.3)
+            
+            self.progress.emit(25)
+            self.status.emit("正在预处理图像（去噪、增强对比度）...")
+            time.sleep(0.3)
             
             # 阶段 3: OCR 识别（主要耗时操作）
-            self.progress.emit(50)
-            self.status.emit("正在识别文字...")
+            self.progress.emit(40)
+            self.status.emit("正在识别文字（这可能需要几秒钟）...")
             
             text = self.ocr_engine.extract_text(self.file_path)
             
-            # 阶段 4: 完成
+            # 阶段 4: 后处理
+            self.progress.emit(90)
+            self.status.emit("正在整理识别结果...")
+            time.sleep(0.2)
+            
+            # 阶段 5: 完成
             self.progress.emit(100)
             self.status.emit("OCR 识别完成")
             
@@ -86,34 +99,35 @@ class AIAnalysisWorker(QThread):
             self.status.emit("正在构建分析提示词...")
             
             # 阶段 3: 调用 AI 模型（主要耗时操作）
-            # 使用定时器模拟进度更新，让用户知道程序还在运行
             self.progress.emit(15)
             self.status.emit("正在连接 AI 服务...")
             
             import time
-            from PyQt6.QtCore import QTimer
+            import threading
             
             # 创建一个标志来跟踪 AI 调用是否完成
             ai_completed = False
             result = None
             error = None
             
-            # 在单独的线程中调用 AI（实际上已经在工作线程中了）
+            # 在单独的线程中调用 AI
             def call_ai():
                 nonlocal result, error, ai_completed
                 try:
+                    self.logger.info("开始调用 AI 模型...")
                     result = self.analyzer.extract_test_points(self.text)
+                    self.logger.info("AI 模型调用成功")
                 except Exception as e:
+                    self.logger.error(f"AI 模型调用失败: {str(e)}")
                     error = e
                 finally:
                     ai_completed = True
             
             # 启动 AI 调用
-            import threading
-            ai_thread = threading.Thread(target=call_ai)
+            ai_thread = threading.Thread(target=call_ai, daemon=True)
             ai_thread.start()
             
-            # 模拟进度更新
+            # 进度更新配置
             progress_value = 20
             progress_messages = [
                 "正在发送请求到 AI 模型...",
@@ -127,28 +141,48 @@ class AIAnalysisWorker(QThread):
             ]
             
             message_index = 0
-            while not ai_completed:
+            elapsed_time = 0
+            max_wait_time = 300  # 最多等待 5 分钟
+            
+            # 循环更新进度，直到 AI 完成或超时
+            while not ai_completed and elapsed_time < max_wait_time:
+                # 更新进度条（最多到 85%）
                 if progress_value < 85:
-                    progress_value += 5
-                    if message_index < len(progress_messages):
-                        self.status.emit(progress_messages[message_index])
-                        message_index += 1
-                    else:
-                        self.status.emit("AI 模型正在深度分析...")
+                    progress_value = min(85, progress_value + 3)
                     self.progress.emit(progress_value)
                 
-                time.sleep(1)  # 每秒更新一次
+                # 更新状态消息（循环显示）
+                if message_index < len(progress_messages):
+                    self.status.emit(progress_messages[message_index])
+                    message_index += 1
+                else:
+                    # 循环回到开始，但添加提示
+                    message_index = 0
+                    self.status.emit(f"AI 模型正在深度分析... (已用时 {elapsed_time}秒)")
+                
+                time.sleep(2)  # 每 2 秒更新一次
+                elapsed_time += 2
             
-            # 等待 AI 线程完成
-            ai_thread.join()
+            # 检查是否超时
+            if not ai_completed:
+                self.logger.error(f"AI 分析超时，已等待 {elapsed_time} 秒")
+                raise TimeoutError(f"AI 分析超时，已等待 {elapsed_time} 秒。请检查网络连接和 API 配置。")
+            
+            # 等待 AI 线程完成（应该已经完成了）
+            ai_thread.join(timeout=5)
             
             # 检查是否有错误
             if error:
                 raise error
             
+            # 检查结果是否有效
+            if result is None:
+                raise ValueError("AI 分析返回空结果")
+            
             # 阶段 4: 解析和验证结果
             self.progress.emit(90)
             self.status.emit("正在验证分析结果...")
+            time.sleep(0.3)
             
             # 阶段 5: 完成
             self.progress.emit(100)
@@ -191,32 +225,48 @@ class TestCaseGenerationWorker(QThread):
             self.logger.info(f"测试用例生成工作线程启动，测试要点数: {test_point_count}")
             
             # 阶段 1: 准备生成
-            self.progress.emit(10)
+            self.progress.emit(5)
             self.status.emit("正在准备生成测试用例...")
             
-            # 阶段 2: 生成正向用例
+            import time
+            
+            # 阶段 2: 分析测试要点
+            self.progress.emit(10)
+            self.status.emit(f"正在分析 {test_point_count} 个测试要点...")
+            time.sleep(0.2)
+            
+            # 阶段 3: 生成正向用例
             self.progress.emit(20)
             self.status.emit("正在生成正向测试用例...")
+            time.sleep(0.3)
             
-            # 阶段 3: 生成负向用例
+            # 阶段 4: 生成负向用例
             self.progress.emit(40)
             self.status.emit("正在生成负向测试用例...")
+            time.sleep(0.3)
             
-            # 阶段 4: 生成边界用例
-            self.progress.emit(60)
+            # 阶段 5: 生成边界用例
+            self.progress.emit(55)
             self.status.emit("正在生成边界测试用例...")
+            time.sleep(0.3)
             
-            # 阶段 5: 执行生成（主要操作）
+            # 阶段 6: 生成异常用例
             self.progress.emit(70)
-            self.status.emit("正在生成测试用例...")
+            self.status.emit("正在生成异常测试用例...")
+            time.sleep(0.2)
+            
+            # 阶段 7: 执行生成（主要操作）
+            self.progress.emit(75)
+            self.status.emit("正在整合测试用例...")
             
             cases = self.generator.generate_test_cases(self.test_points)
             
-            # 阶段 6: 验证和去重
+            # 阶段 8: 验证和去重
             self.progress.emit(90)
-            self.status.emit("正在验证和去重...")
+            self.status.emit(f"正在验证和去重 {len(cases)} 个测试用例...")
+            time.sleep(0.2)
             
-            # 阶段 7: 完成
+            # 阶段 9: 完成
             self.progress.emit(100)
             self.status.emit("测试用例生成完成")
             

@@ -205,7 +205,9 @@ class MainWindow(QMainWindow):
                 provider_name=self.config.ai_model.provider,
                 api_key=self.config.ai_model.api_key,
                 base_url=self.config.ai_model.base_url,
-                model_name=self.config.ai_model.model_name
+                model_name=self.config.ai_model.model_name,
+                timeout=120,  # 设置 2 分钟超时
+                max_retries=3  # 最多重试 3 次
             )
             
             # 初始化 AI 分析器

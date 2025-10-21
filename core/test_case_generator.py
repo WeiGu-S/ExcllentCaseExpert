@@ -35,6 +35,10 @@ class TestCaseGenerator:
         
         self.config = config
         
+        # AI调用控制
+        self.ai_call_count = 0
+        self.max_ai_calls = 10  # 允许适量的AI调用，平衡质量和性能
+        
         # AI模型提供者
         self.ai_provider = ai_provider
         if not self.ai_provider:
@@ -104,10 +108,13 @@ class TestCaseGenerator:
         feature_name = test_points.get("feature_name", "")
         self.logger.log_operation("generate_test_cases_start", feature_name=feature_name)
         
+        # 重置计数器
         self.case_counter = 0
+        self.ai_call_count = 0
         all_cases = []
         
         test_point_list = test_points.get("test_points", [])
+        self.max_ai_calls = len(test_point_list) / 2  # 限制最大AI调用次数
         
         for test_point_dict in test_point_list:
             try:
@@ -143,14 +150,18 @@ class TestCaseGenerator:
         
         # 1. 基于AI场景生成核心用例（每个场景1个用例）
         if test_point.scenarios:
-            for i, scenario in enumerate(test_point.scenarios[:3]):  # 限制最多3个场景
+            # 限制场景数量以减少AI调用次数
+            max_scenarios = 2
+            for i, scenario in enumerate(test_point.scenarios[:max_scenarios]):
                 case = self._create_scenario_based_case(test_point, scenario, i + 1)
                 if case:
                     cases.append(case)
         
-        # 2. 根据测试类别和优先级补充关键用例
-        additional_cases = self._generate_category_specific_cases(test_point)
-        cases.extend(additional_cases)
+        # 2. 根据测试类别和优先级补充关键用例（仅对P0优先级且AI调用次数未超限）
+        if (test_point.priority == Priority.P0 and 
+            self.ai_call_count < self.max_ai_calls):
+            additional_cases = self._generate_category_specific_cases(test_point)
+            cases.extend(additional_cases)
         
         return cases
     
@@ -218,8 +229,10 @@ class TestCaseGenerator:
     
     def _generate_expected_result(self, scenario: str, action_type: str) -> str:
         """根据场景和操作类型生成期望结果"""
-        # 优先使用AI生成具体的期望结果
-        if self.ai_provider:
+        # 只对重要场景使用AI生成具体的期望结果
+        if (self.ai_provider and 
+            self.ai_call_count < self.max_ai_calls and
+            len(scenario) > 20):  # 只对较复杂的场景使用AI
             ai_result = self._generate_ai_expected_result(scenario, action_type)
             if ai_result:
                 return ai_result
@@ -238,7 +251,13 @@ class TestCaseGenerator:
     
     def _generate_ai_expected_result(self, scenario: str, action_type: str) -> Optional[str]:
         """使用AI生成具体的期望结果"""
+        # 检查AI调用次数限制
+        if self.ai_call_count >= self.max_ai_calls:
+            self.logger.warning("已达到AI调用次数限制，跳过AI生成")
+            return None
+            
         try:
+            self.ai_call_count += 1
             prompt = f"""作为移动端测试专家，请为以下测试场景生成具体、可验证的期望结果。
 
 测试场景: {scenario}
@@ -256,7 +275,7 @@ class TestCaseGenerator:
             response = self.ai_provider.chat(
                 prompt, 
                 temperature=self.ai_temperature, 
-                max_tokens=self.ai_max_tokens
+                max_tokens=300  # 大幅限制token数量，加快响应
             )
             
             if response and response.strip():
@@ -273,8 +292,10 @@ class TestCaseGenerator:
     
     def _generate_realistic_steps(self, test_point: TestPoint, scenario_info: Dict) -> List[TestStep]:
         """生成贴近真实的测试步骤"""
-        # 优先使用AI优化步骤
-        if self.ai_provider:
+        # 只对P0/P1优先级的测试要点使用AI优化
+        if (self.ai_provider and 
+            test_point.priority in [Priority.P0, Priority.P1] and
+            self.ai_call_count < self.max_ai_calls):
             ai_steps = self._generate_ai_optimized_steps(test_point, scenario_info)
             if ai_steps:
                 return ai_steps
@@ -284,12 +305,20 @@ class TestCaseGenerator:
     
     def _generate_ai_optimized_steps(self, test_point: TestPoint, scenario_info: Dict) -> Optional[List[TestStep]]:
         """使用AI生成优化的测试步骤"""
+        # 检查AI调用次数限制
+        if self.ai_call_count >= self.max_ai_calls:
+            self.logger.warning("已达到AI调用次数限制，跳过AI步骤生成")
+            return None
+            
         try:
+            self.ai_call_count += 1
             prompt = self._build_step_optimization_prompt(test_point, scenario_info)
+            
+            # 添加超时控制，减少max_tokens以加快响应
             response = self.ai_provider.chat(
                 prompt, 
                 temperature=self.ai_temperature, 
-                max_tokens=self.ai_max_tokens
+                max_tokens=800  # 限制token数量加快响应
             )
             
             if response and response.strip():
@@ -1398,7 +1427,13 @@ class TestCaseGenerator:
     
     def _generate_ai_compatibility_steps(self, test_point: TestPoint) -> Optional[List[TestStep]]:
         """使用AI生成兼容性测试步骤"""
+        # 检查AI调用次数限制
+        if self.ai_call_count >= self.max_ai_calls:
+            self.logger.warning("已达到AI调用次数限制，跳过兼容性步骤生成")
+            return None
+            
         try:
+            self.ai_call_count += 1
             # 分析功能复杂度来确定步骤数量
             complexity = self._analyze_scenario_complexity(test_point.description)
             step_range = self._get_step_range_by_complexity(complexity)
@@ -1436,7 +1471,7 @@ class TestCaseGenerator:
             response = self.ai_provider.chat(
                 prompt, 
                 temperature=self.ai_temperature, 
-                max_tokens=self.ai_max_tokens
+                max_tokens=600  # 限制兼容性测试的token数量
             )
             steps_data = self._parse_ai_steps_response(response)
             
@@ -1489,7 +1524,13 @@ class TestCaseGenerator:
     
     def _generate_ai_usability_steps(self, test_point: TestPoint) -> Optional[List[TestStep]]:
         """使用AI生成易用性测试步骤"""
+        # 检查AI调用次数限制
+        if self.ai_call_count >= self.max_ai_calls:
+            self.logger.warning("已达到AI调用次数限制，跳过易用性步骤生成")
+            return None
+            
         try:
+            self.ai_call_count += 1
             # 分析功能复杂度来确定步骤数量
             complexity = self._analyze_scenario_complexity(test_point.description)
             step_range = self._get_step_range_by_complexity(complexity)
@@ -1527,7 +1568,7 @@ class TestCaseGenerator:
             response = self.ai_provider.chat(
                 prompt, 
                 temperature=self.ai_temperature, 
-                max_tokens=self.ai_max_tokens
+                max_tokens=600  # 限制易用性测试的token数量
             )
             steps_data = self._parse_ai_steps_response(response)
             

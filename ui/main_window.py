@@ -5,17 +5,16 @@ PyQt6 主窗口
 """
 
 from PyQt6.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QSplitter,
+    QMainWindow, QWidget, QVBoxLayout, QSplitter,
     QToolBar, QProgressBar, QLabel, QFileDialog, QMessageBox, QDialog
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QThread, QSize
+from PyQt6.QtCore import Qt, QThread, QSize
 from PyQt6.QtGui import QAction
 from pathlib import Path
 from typing import Optional, List, Dict
 
 from utils.config_manager import AppConfig
 from utils.log_manager import get_logger
-from utils.exceptions import handle_exceptions
 from core.ocr_engine import OCREngine
 from core.ai_model_provider import AIModelFactory
 from core.ai_test_point_analyzer import AITestPointAnalyzer
@@ -346,7 +345,7 @@ class MainWindow(QMainWindow):
             self.logger.log_operation("start_ocr", file_path=self.current_file_path)
             
             # 创建 OCR 工作线程
-            from ui.workers import OCRWorker
+            from core.workers import OCRWorker
             
             self.ocr_worker = OCRWorker(self.ocr_engine, self.current_file_path)
             
@@ -445,7 +444,7 @@ class MainWindow(QMainWindow):
             self.logger.log_operation("start_ai_analysis", text_length=len(text))
             
             # 创建 AI 分析工作线程
-            from ui.workers import AIAnalysisWorker
+            from core.workers import AIAnalysisWorker
             
             self.ai_worker = AIAnalysisWorker(self.ai_analyzer, text)
             
@@ -544,7 +543,7 @@ class MainWindow(QMainWindow):
             self.logger.log_operation("generate_test_cases_start")
             
             # 创建测试用例生成工作线程
-            from ui.workers import TestCaseGenerationWorker
+            from core.workers import TestCaseGenerationWorker
             
             self.case_worker = TestCaseGenerationWorker(
                 self.test_case_generator,

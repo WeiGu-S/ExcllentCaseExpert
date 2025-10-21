@@ -9,6 +9,7 @@
 from typing import Dict, List, Tuple, Optional
 from utils.models import TestCase, TestStep, TestCategory, Priority, TestPoint
 from utils.log_manager import StructuredLogger
+from utils.config_manager import AppConfig
 from core.ai_model_provider import AIModelFactory
 import re
 import random
@@ -18,24 +19,46 @@ import json
 class TestCaseGenerator:
     """移动C端测试用例生成器 - 重构版"""
     
-    def __init__(self, ai_provider=None):
+    def __init__(self, ai_provider=None, config: AppConfig = None):
         """初始化测试用例生成器"""
         self.case_counter = 0
         self.logger = StructuredLogger("TestCaseGenerator")
+        
+        # 加载配置
+        if config is None:
+            try:
+                config = AppConfig.load_from_file()
+                self.logger.info("成功加载配置文件")
+            except Exception as e:
+                self.logger.warning(f"加载配置文件失败，使用默认配置: {e}")
+                config = AppConfig.create_default()
+        
+        self.config = config
         
         # AI模型提供者
         self.ai_provider = ai_provider
         if not self.ai_provider:
             try:
-                # 尝试从环境变量获取API密钥
-                import os
-                api_key = os.getenv("OPENAI_API_KEY")
-                if api_key:
-                    self.ai_provider = AIModelFactory.create_provider("openai", api_key)
-                    self.logger.info("成功初始化AI提供者")
+                # 使用配置文件中的AI模型配置
+                ai_config = self.config.ai_model
+                
+                # 检查API密钥是否有效
+                if ai_config.api_key and ai_config.api_key != "your_api_key_here":
+                    self.ai_provider = AIModelFactory.create_provider(
+                        provider_name=ai_config.provider,
+                        api_key=ai_config.api_key,
+                        base_url=ai_config.base_url,
+                        model_name=ai_config.model_name
+                    )
+                    # 保存配置参数供后续使用
+                    self.ai_max_tokens = ai_config.max_tokens
+                    self.ai_temperature = ai_config.temperature
+                    self.logger.info(f"成功初始化AI提供者: {ai_config.provider} - {ai_config.model_name}")
                 else:
-                    self.logger.info("未配置AI API密钥，将使用智能模板化生成")
+                    self.logger.info("未配置有效的AI API密钥，将使用智能模板化生成")
                     self.ai_provider = None
+                    self.ai_max_tokens = 2000
+                    self.ai_temperature = 0.7
             except Exception as e:
                 self.logger.warning(f"无法初始化AI提供者: {e}")
                 self.ai_provider = None
@@ -230,7 +253,11 @@ class TestCaseGenerator:
 
 请直接返回期望结果描述，不需要其他格式："""
 
-            response = self.ai_provider.chat(prompt)
+            response = self.ai_provider.chat(
+                prompt, 
+                temperature=self.ai_temperature, 
+                max_tokens=self.ai_max_tokens
+            )
             
             if response and response.strip():
                 result = response.strip()
@@ -259,7 +286,11 @@ class TestCaseGenerator:
         """使用AI生成优化的测试步骤"""
         try:
             prompt = self._build_step_optimization_prompt(test_point, scenario_info)
-            response = self.ai_provider.chat(prompt)
+            response = self.ai_provider.chat(
+                prompt, 
+                temperature=self.ai_temperature, 
+                max_tokens=self.ai_max_tokens
+            )
             
             if response and response.strip():
                 steps_data = self._parse_ai_steps_response(response)
@@ -1402,7 +1433,11 @@ class TestCaseGenerator:
   ]
 }}"""
 
-            response = self.ai_provider.chat(prompt)
+            response = self.ai_provider.chat(
+                prompt, 
+                temperature=self.ai_temperature, 
+                max_tokens=self.ai_max_tokens
+            )
             steps_data = self._parse_ai_steps_response(response)
             
             if steps_data:
@@ -1489,7 +1524,11 @@ class TestCaseGenerator:
   ]
 }}"""
 
-            response = self.ai_provider.chat(prompt)
+            response = self.ai_provider.chat(
+                prompt, 
+                temperature=self.ai_temperature, 
+                max_tokens=self.ai_max_tokens
+            )
             steps_data = self._parse_ai_steps_response(response)
             
             if steps_data:

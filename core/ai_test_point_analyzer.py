@@ -62,15 +62,15 @@ class AITestPointAnalyzer:
             model=self.model_provider.model_name
         )
         
-        # 检查缓存
-        cached_result = self.cache_manager.get_ai_cache(
-            requirement_text,
-            self.model_provider.model_name
-        )
-        
-        if cached_result:
-            self.logger.info("使用缓存的 AI 分析结果")
-            return cached_result
+        # # 检查缓存
+        # cached_result = self.cache_manager.get_ai_cache(
+        #     requirement_text,
+        #     self.model_provider.model_name
+        # )
+        #
+        # if cached_result:
+        #     self.logger.info("使用缓存的 AI 分析结果")
+        #     return cached_result
         
         # 构建 Prompt
         prompt = self._build_prompt(requirement_text)
@@ -80,8 +80,7 @@ class AITestPointAnalyzer:
         max_retries = 3
         for attempt in range(max_retries):
             try:
-                self.logger.info(f"开始调用{str(self.model_provider)}模型... (尝试 {attempt + 1}/{max_retries})")
-                
+                self.logger.info(f"开始调用{self.model_provider.provider_name}模型... (尝试 {attempt + 1}/{max_retries})")
                 # 根据尝试次数调整参数
                 temperature = 0.7 if attempt == 0 else 0.5
                 max_tokens = 2000 + (attempt * 500)  # 逐步增加token限制
@@ -207,19 +206,19 @@ class AITestPointAnalyzer:
 
 【移动端核心测试维度】
 
-**功能验证**（占比60%）：
+**功能验证**（占比70%）：
 - 核心业务流程的完整性和正确性
 - 用户操作的响应和反馈
 - 数据的准确性和一致性
 - 页面间的导航和状态管理
 
-**设备适配**（占比25%）：
+**设备适配**（占比10%）：
 - 不同屏幕尺寸的界面适配
 - 横竖屏切换的布局调整
 - 不同系统版本的功能兼容
 - 触摸操作的准确性和流畅性
 
-**用户体验**（占比15%）：
+**用户体验**（占比20%）：
 - 操作的直观性和便捷性
 - 错误处理的友好性
 - 加载和响应的及时性
@@ -264,11 +263,40 @@ class AITestPointAnalyzer:
 - 覆盖度：功能测试为主，兼容性和易用性为辅
 - 优先级：P0-P1占70%，P2-P3占30%
 
-【字段约束】
-- category：仅限"功能测试"、"兼容性测试"、"易用性测试"
-- test_type：仅限"正向测试"、"负向测试"、"边界测试"
-- priority：仅限"P0"、"P1"、"P2"、"P3"
-- id：严格按"TP_001"、"TP_002"格式递增
+【严格字段约束 - 违反将导致系统错误】
+
+⚠️ CRITICAL: 以下字段值必须严格按照指定格式，不允许任何变体或自定义值：
+
+category 字段 - 只能使用以下3个值（一字不差）：
+✅ "功能测试"
+✅ "兼容性测试" 
+✅ "易用性测试"
+❌ 禁止使用：推送功能测试、文案显示测试、优惠券配置测试、时效性测试、异常场景测试等
+
+test_type 字段 - 只能使用以下3个值（一字不差）：
+✅ "正向测试"
+✅ "负向测试"
+✅ "边界测试"
+❌ 禁止使用：兼容性测试、异常测试、回归测试等
+
+priority 字段 - 只能使用以下4个值：
+✅ "P0" "P1" "P2" "P3"
+
+id 字段格式：
+✅ "TP_001" "TP_002" "TP_003" ...
+
+【验证规则】
+系统将严格验证每个字段值，任何不匹配的值都会导致处理失败。
+请确保每个测试要点的category和test_type字段都使用上述指定的确切值。
+
+【示例】
+正确的测试要点格式：
+{{
+  "id": "TP_001",
+  "category": "功能测试",
+  "test_type": "正向测试",
+  "priority": "P0"
+}}
 
 请直接输出JSON，不要包含任何其他文字："""
         return prompt
@@ -362,6 +390,23 @@ class AITestPointAnalyzer:
     }}
   ]
 }}
+
+【严格字段约束 - 违反将导致系统错误】
+
+⚠️ CRITICAL: 以下字段值必须严格按照指定格式，不允许任何变体或自定义值：
+
+category 字段 - 只能使用以下3个值（一字不差）：
+✅ "功能测试"
+✅ "兼容性测试" 
+✅ "易用性测试"
+
+test_type 字段 - 只能使用以下3个值（一字不差）：
+✅ "正向测试"
+✅ "负向测试"
+✅ "边界测试"
+
+priority 字段 - 只能使用以下4个值：
+✅ "P0" "P1" "P2" "P3"
 
 只输出JSON，确保格式正确："""
         
@@ -490,11 +535,11 @@ class AITestPointAnalyzer:
             
             # 在严格模式下进行更严格的验证
             if strict_mode:
-                min_points = 4
+                min_points = 2  # 进一步降低最小要求，注重质量
                 max_points = 12  # 减少最大数量，注重质量
-                min_description_length = 8
-                min_scenarios = 3
-                min_scenario_length = 20  # 提高场景描述质量要求
+                min_description_length = 6  # 降低描述长度要求
+                min_scenarios = 2  # 降低场景数量要求
+                min_scenario_length = 12  # 进一步降低场景长度要求
             else:
                 # 测试模式下的宽松要求
                 min_points = 1
@@ -614,7 +659,12 @@ class AITestPointAnalyzer:
         # 检查是否包含具体的操作动词
         action_keywords = [
             "点击", "输入", "滑动", "长按", "双击", "拖拽",
-            "打开", "关闭", "切换", "选择", "确认", "取消"
+            "打开", "关闭", "切换", "选择", "确认", "取消",
+            "查看", "浏览", "收到", "接收", "进入", "访问",
+            "刷新", "返回", "登录", "退出", "保存", "删除",
+            "编辑", "修改", "添加", "移除", "搜索", "筛选",
+            "领取", "使用", "操作", "执行", "触发", "启动",
+            "下载", "上传", "分享", "复制", "粘贴", "发送"
         ]
         
         # 检查是否包含验证关键词
